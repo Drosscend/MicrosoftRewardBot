@@ -15,11 +15,11 @@ puppeteer.use(StealthPlugin())
 puppeteer.use(AdblockerPlugin({blockTrackers: true}))
 
 const REWARD_PAGE_URL = 'https://rewards.bing.com/';
-if (process.env.BING_USERNAME === undefined || process.env.BING_PASSWORD === undefined) {
+if (process.env['BING_USERNAME'] === undefined || process.env['BING_PASSWORD'] === undefined) {
     throw new Error('BING_USERNAME and BING_PASSWORD must be set in .env file');
 }
-const BING_USERNAME = process.env.BING_USERNAME
-const BING_PASSWORD = process.env.BING_PASSWORD;
+const BING_USERNAME = process.env['BING_USERNAME']
+const BING_PASSWORD = process.env['BING_PASSWORD'];
 
 /**
  * Wait for a given amount of time
