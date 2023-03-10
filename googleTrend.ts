@@ -27,7 +27,7 @@ export class GoogleTrends {
                 return Array.from(document.querySelectorAll(".feed-item")).map((item) => {
                     const title = item.querySelector(".title");
                     if (!title) return null;
-                    const query = title.textContent?.replace(/[^a-zA-Z0-9 ]/g, "");
+                    const query = title.textContent?.replace(/[^a-zA-Z0-9 ]/g, "").trim();
                     return {query};
                 });
             });

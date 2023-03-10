@@ -34,7 +34,6 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} query - The query to search
  */
 const search = async (client: Page, query: string | undefined) => {
-    console.log(`Searching for ${query}`);
     await client.goto(`https://www.bing.com/search?q=${query}`);
     await wait(1000);
 };
@@ -44,7 +43,7 @@ const search = async (client: Page, query: string | undefined) => {
  * @param client - The puppeteer client
  * @returns {Promise<void>} - A promise that resolves after the login
  */
-const bingLogin = async (client: Page) => {
+const bingLoginAction = async (client: Page) => {
     await client.goto(REWARD_PAGE_URL);
     await client.type('#i0116', BING_USERNAME);
     await client.click('#idSIButton9');
@@ -55,6 +54,29 @@ const bingLogin = async (client: Page) => {
     await client.waitForNavigation();
     console.log('Logged in');
 };
+
+/**
+ * Get Google Trend and make research on Bing on PC and mobile agent
+ * @param client - The puppeteer client
+ */
+const searchAction = async (client: Page) => {
+    const googleTrends = new GoogleTrends();
+    const googleTrendTab = await googleTrends.getGoogleTrends(client);
+    if (googleTrendTab != null) {
+        console.log("Recherche des tendances Google avec un user agent PC");
+        await client.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36');
+        for (let i = 0; i < googleTrendTab.length; i++) {
+            await search(client, googleTrendTab[i]?.query);
+        }
+        console.log("Recherche des tendances Google avec un user agent mobile");
+        await client.setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Mobile Safari/537.36');
+        for (let i = 0; i < googleTrendTab.length; i++) {
+            await search(client, googleTrendTab[i]?.query);
+        }
+    } else {
+        console.log("No Google Trend");
+    }
+}
 
 puppeteer.launch({
     headless: false,
@@ -67,18 +89,13 @@ puppeteer.launch({
     await Page.setDefaultNavigationTimeout(60000);
 
     //Login
-    await bingLogin(Page);
+    await bingLoginAction(Page);
 
     // Get Google Trend
-    const googleTrends = new GoogleTrends();
-    const googleTrendTab = await googleTrends.getGoogleTrends(Page);
-    if (googleTrendTab != null) {
-        for (let i = 0; i < googleTrendTab.length; i++) {
-            await search(Page, googleTrendTab[i]?.query);
-        }
-    } else {
-        console.log("No Google Trend");
-    }
+    await searchAction(Page);
+
+    // Set user agent to default
+    await Page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36');
 
     await browser.close();
 });
