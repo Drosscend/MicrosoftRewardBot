@@ -23,8 +23,8 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} query - The query to search
  */
 const search = async (page, query) => {
+    console.log(`Searching for ${query}`);
     await page.goto(`https://www.bing.com/search?q=${query}`);
-    await page.waitForSelector(".b_algo");
     await wait(1000);
 };
 
@@ -57,9 +57,9 @@ const bingLogin = async (page) => {
 
     const googleTrendTab = await google.getTrends(page)
 
-    await googleTrendTab.forEach(element => {
-        search(page, element.title)
-    });
+    for (let i = 0; i < googleTrendTab.length; i++) {
+        await search(page, googleTrendTab[i].query);
+    }
 
     await browser.close();
 })();

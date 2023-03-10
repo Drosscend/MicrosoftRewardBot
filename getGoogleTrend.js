@@ -12,8 +12,8 @@ const fillTrendsDataFromPage = async (page) => {
     }
     const dataFromPage = await page.evaluate(() => {
         return Array.from(document.querySelectorAll(".feed-item")).map((item) => {
-            const title = item.querySelector(".title").innerText.replace("•", "");
-            const query = title.replace(/ /g, "+");
+            const title = item.querySelector(".title");
+            const query = title.innerText.replace(/[^a-zA-Z0-9 ]/g, "");
             return { query };
         } );
     }, baseURL);
