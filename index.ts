@@ -14,12 +14,14 @@ puppeteer.use(StealthPlugin())
 
 puppeteer.use(AdblockerPlugin({blockTrackers: true}))
 
-const REWARD_PAGE_URL = 'https://rewards.bing.com/';
 if (process.env['BING_USERNAME'] === undefined || process.env['BING_PASSWORD'] === undefined) {
     throw new Error('BING_USERNAME and BING_PASSWORD must be set in .env file');
 }
-const BING_USERNAME = process.env['BING_USERNAME']
+const BING_USERNAME = process.env['BING_USERNAME'];
 const BING_PASSWORD = process.env['BING_PASSWORD'];
+// Define user-agents
+const PC_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36 Edg/86.0.622.63'
+const MOBILE_USER_AGENT = 'Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0. 3945.79 Mobile Safari/537.36'
 
 /**
  * Wait for a given amount of time
@@ -43,15 +45,18 @@ const search = async (client: Page, query: string | undefined) => {
  * @param client - The puppeteer client
  * @returns {Promise<void>} - A promise that resolves after the login
  */
-const bingLoginAction = async (client: Page) => {
-    await client.goto(REWARD_PAGE_URL);
-    await client.type('#i0116', BING_USERNAME);
-    await client.click('#idSIButton9');
-    await client.waitForSelector('#i0118');
-    await client.type('#i0118', BING_PASSWORD);
-    await wait(500);
-    await client.click('#idSIButton9');
-    await client.waitForNavigation();
+const loginAction = async (client: Page) => {
+    await client.goto('https://rewards.bing.com/');
+    await client.waitForSelector(`input[name="loginfmt"]`);
+    await client.type(`input[name="loginfmt"]`, BING_USERNAME);
+    await client.click(`input[id="idSIButton9"]`);
+    await wait(2000);
+
+    await client.waitForSelector(`input[name="passwd"]`);
+    await client.type(`input[name="passwd"]`, BING_PASSWORD);
+    await client.click(`input[id="idSIButton9"]`);
+    await wait(2000);
+
     console.log("Connexion à Bing réussie");
 };
 
@@ -64,12 +69,12 @@ const searchAction = async (client: Page) => {
     const googleTrendTab = await googleTrends.getGoogleTrends(client, 60);
     if (googleTrendTab != null) {
         console.log("Recherche des tendances Google avec un user agent PC");
-        await client.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36');
+        await client.setUserAgent(PC_USER_AGENT);
         for (let i = 0; i < googleTrendTab.length; i++) {
             await search(client, googleTrendTab[i]?.query);
         }
         console.log("Recherche des tendances Google avec un user agent mobile");
-        await client.setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Mobile Safari/537.36');
+        await client.setUserAgent(MOBILE_USER_AGENT);
         for (let i = 0; i < googleTrendTab.length; i++) {
             await search(client, googleTrendTab[i]?.query);
         }
@@ -77,6 +82,22 @@ const searchAction = async (client: Page) => {
         console.log("Aucune tendance Google n'a été trouvée");
     }
 }
+
+/**
+ * Get user info
+ * @param client - The puppeteer client
+ */
+const getUserInfo = async (client: Page) => {
+    await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
+    const response = await client.evaluate(() => {
+        return document.querySelector('pre')?.innerHTML;
+    });
+    if (response != null) {
+        return JSON.parse(response);
+    }
+    return null;
+}
+
 
 /**
  * Main function
@@ -92,19 +113,29 @@ const main = (productionMode: boolean) => {
         const Page = await browser.newPage();
         await Page.setViewport({width: 1200, height: 700});
         await Page.setDefaultNavigationTimeout(60000);
+        await Page.setUserAgent(PC_USER_AGENT);
 
         //Login
-        await bingLoginAction(Page);
+        await loginAction(Page);
+
+        // Get user info
+        const userInfo = await getUserInfo(Page);
+        if (userInfo != null) {
+            console.log("Points Bing avant : " + userInfo?.dashboard?.userStatus?.availablePoints);
+        }
+
+        await wait(100000);
 
         // Get Google Trend
         await searchAction(Page);
 
         // Set user agent to default
-        await Page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36');
+        await Page.setUserAgent(PC_USER_AGENT);
 
         await browser.close();
+        console.log("Fin du script");
     });
 }
 
-main(true);
+main(false);
 
