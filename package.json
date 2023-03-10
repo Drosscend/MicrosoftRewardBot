@@ -1,8 +1,9 @@
 {
-  "name": "Test",
+  "name": "microsoft-rewards-bot",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
@@ -11,8 +12,10 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.0.3",
+    "edge-paths": "^3.0.5",
     "puppeteer": "^19.7.4",
     "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-adblocker": "^2.13.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
