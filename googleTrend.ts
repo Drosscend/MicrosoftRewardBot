@@ -13,12 +13,13 @@ export class GoogleTrends {
 
     /**
      * Fill the trends data from the page
+     * @param client - The puppeteer client
+     * @param nbTrends - The number of trends to get
      * @returns {Promise<*>} - A promise that resolves with the trends data
-     * @param client
      */
-    async fillTrendsDataFromPage(client: Page) {
+    async fillTrendsDataFromPage(client: Page, nbTrends: number): Promise<({ query: string | undefined } | null)[]> {
         // Charger la page
-        const maxTrends = 40;
+        const maxTrends = nbTrends;
         let trends: ({ query: string | undefined } | null)[] = [];
 
         while (trends.length < maxTrends) {
@@ -45,21 +46,25 @@ export class GoogleTrends {
         }
 
         // Récupérer les 40 premières tendances
+        // Récupérer les 40 premières tendances
         return trends.slice(0, maxTrends);
     }
 
     /**
      * Get Google Trends
+     * @param client - The puppeteer client
+     * @param nbTrends - The number of trends to get
      * @returns {Promise<*>} - A promise that resolves with the Google Trends
-     * @param client
      */
-    async getGoogleTrends(client: Page) {
+    async getGoogleTrends(client: Page, nbTrends: number): Promise<({ query: string | undefined } | null)[]> {
+        console.log("Récupération des tendances Google");
         const URL = `${this.baseURL}/trends/trendingsearches/realtime?geo=${this.countryCode}&category=${this.category}&hl=fr`;
 
         await client.goto(URL);
         await client.waitForSelector(".feed-item");
 
-        return await this.fillTrendsDataFromPage(client);
+        console.log("Récupération des tendances Google réussie");
+        return await this.fillTrendsDataFromPage(client, nbTrends);
     }
 
 }

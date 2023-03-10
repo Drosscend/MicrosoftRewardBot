@@ -61,7 +61,7 @@ const bingLoginAction = async (client: Page) => {
  */
 const searchAction = async (client: Page) => {
     const googleTrends = new GoogleTrends();
-    const googleTrendTab = await googleTrends.getGoogleTrends(client);
+    const googleTrendTab = await googleTrends.getGoogleTrends(client, 60);
     if (googleTrendTab != null) {
         console.log("Recherche des tendances Google avec un user agent PC");
         await client.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36');
@@ -78,24 +78,33 @@ const searchAction = async (client: Page) => {
     }
 }
 
-puppeteer.launch({
-    headless: false,
-    ignoreDefaultArgs: ['--disable-extensions'],
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    executablePath: getEdgePath()
-}).then(async browser => {
-    const Page = await browser.newPage();
-    await Page.setViewport({width: 1200, height: 700});
-    await Page.setDefaultNavigationTimeout(60000);
+/**
+ * Main function
+ * @param productionMode - If true, the browser will be launched in headless mode
+ */
+const main = (productionMode: boolean) => {
+    puppeteer.launch({
+        headless: productionMode,
+        ignoreDefaultArgs: ['--disable-extensions'],
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        executablePath: getEdgePath()
+    }).then(async browser => {
+        const Page = await browser.newPage();
+        await Page.setViewport({width: 1200, height: 700});
+        await Page.setDefaultNavigationTimeout(60000);
 
-    //Login
-    await bingLoginAction(Page);
+        //Login
+        await bingLoginAction(Page);
 
-    // Get Google Trend
-    await searchAction(Page);
+        // Get Google Trend
+        await searchAction(Page);
 
-    // Set user agent to default
-    await Page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36');
+        // Set user agent to default
+        await Page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36');
 
-    await browser.close();
-});
+        await browser.close();
+    });
+}
+
+main(true);
+
