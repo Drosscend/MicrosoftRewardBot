@@ -52,7 +52,7 @@ const bingLoginAction = async (client: Page) => {
     await wait(500);
     await client.click('#idSIButton9');
     await client.waitForNavigation();
-    console.log('Logged in');
+    console.log("Connexion à Bing réussie");
 };
 
 /**
@@ -74,7 +74,7 @@ const searchAction = async (client: Page) => {
             await search(client, googleTrendTab[i]?.query);
         }
     } else {
-        console.log("No Google Trend");
+        console.log("Aucune tendance Google n'a été trouvée");
     }
 }
 
