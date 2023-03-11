@@ -1,65 +1,77 @@
 import {Page} from "puppeteer";
+import {wait} from "./utils.js";
+import {config} from "./config.js";
 
-export class GoogleTrends {
-    private readonly baseURL: string;
-    private readonly countryCode: string;
-    private readonly category: string;
-
-    constructor() {
-        this.baseURL = `https://trends.google.com`;
-        this.countryCode = "FR";
-        this.category = "all";
-    }
+    const baseURL = config.gooogleTrends.baseURL;
+    const countryCode = config.gooogleTrends.countryCode;
+    const category = config.gooogleTrends.category;
 
     /**
      * Fill the trends data from the page
+     * @param page - The puppeteer client
+     * @param nbTrends - The number of trends to get
      * @returns {Promise<*>} - A promise that resolves with the trends data
-     * @param client
      */
-    async fillTrendsDataFromPage(client: Page) {
-        // Charger la page
-        const maxTrends = 40;
-        let trends: ({ query: string | undefined } | null)[] = [];
+    const fillTrendsDataFromPage = async (page: Page, nbTrends: number): Promise<string[]> => {
+        const maxTrends = nbTrends;
+        let trends: string[] = [];
 
         while (trends.length < maxTrends) {
+            console.log(`Récupération des tendances Google (${trends.length}/${maxTrends})`);
             // Récupérer les tendances actuelles
-            const currentTrends = await client.evaluate(() => {
-                return Array.from(document.querySelectorAll(".feed-item")).map((item) => {
+            const currentTrends = await page.evaluate(() => {
+                const trends: string[] = [];
+                const trendItems = document.querySelectorAll(".feed-item");
+                trendItems.forEach((item) => {
                     const title = item.querySelector(".title");
-                    if (!title) return null;
-                    const query = title.textContent?.replace(/[^a-zA-Z0-9 ]/g, "");
-                    return {query};
+                    if (title) {
+                        const query = title.textContent
+                            ?.replace(/[^a-zA-Z0-9\s]/g, "")
+                            .replace(/\s+/g, " ")
+                            .trim();
+                        if (query && query.length > 0) {
+                            trends.push(query);
+                        }
+                    }
                 });
+                return trends;
             });
 
             // Ajouter les tendances actuelles à la liste totale des tendances
             trends = trends.concat(currentTrends);
 
+            if (trends.length >= maxTrends) break;
+
+            await page.evaluate(() => {
+                window.scrollBy(0, window.innerHeight);
+            });
+
             // Vérifier s'il reste des tendances à charger
-            const isNextPage = await client.$(".feed-load-more-button");
-            if (!isNextPage || trends.length >= maxTrends) break;
+            const isNextPage = await page.$(".feed-load-more-button");
+            if (!isNextPage) break;
 
             // Charger plus de tendances
-            await client.click(".feed-load-more-button");
-            await client.waitForTimeout(2000);
+            await page.click(".feed-load-more-button");
+            await wait(2000);
         }
 
-        // Récupérer les 40 premières tendances
-        return trends.slice(0, maxTrends);
+        return trends.slice(0, maxTrends)
     }
 
     /**
      * Get Google Trends
+     * @param page - The puppeteer client
+     * @param nbTrends - The number of trends to get
      * @returns {Promise<*>} - A promise that resolves with the Google Trends
-     * @param client
      */
-    async getGoogleTrends(client: Page) {
-        const URL = `${this.baseURL}/trends/trendingsearches/realtime?geo=${this.countryCode}&category=${this.category}&hl=fr`;
+    export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<string[]> => {
+        console.log(`Récupération des tendances Google (${nbTrends} tendances)`);
+        const URL = `${baseURL}/trends/trendingsearches/realtime?geo=${countryCode}&category=${category}&hl=fr`;
 
-        await client.goto(URL);
-        await client.waitForSelector(".feed-item");
+        await page.goto(URL);
+        await page.waitForSelector(".feed-item");
 
-        return await this.fillTrendsDataFromPage(client);
+        const trends = await fillTrendsDataFromPage(page, nbTrends);
+        console.log(`Récupération des tendances Google terminée (${trends.length} tendances)`);
+        return trends;
     }
-
-}
