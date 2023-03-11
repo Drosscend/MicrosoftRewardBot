@@ -2,12 +2,10 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import {getGoogleTrends} from "./modules/googleTrend.js";
-import {wait} from "./modules/utils.js";
+import {progressBar, wait} from "./modules/utils.js";
 import {config} from "./modules/config.js";
 import {Page} from "puppeteer";
 import {Response} from "./modules/Dashboard.js";
-import {Bar} from "cli-progress";
-import colors from "ansi-colors";
 
 /**
  * Make research on Bing
@@ -24,13 +22,7 @@ const search = async (client: Page, query: string | undefined) => {
  * @param client - The puppeteer client
  */
 const searchAction = async (client: Page) => {
-    // Search progress bar
-    const bar = new Bar({
-        format: 'Recherche des tendances Google (PC et mobile) |' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total}',
-        barCompleteChar: '\u2588',
-        barIncompleteChar: '\u2591',
-        hideCursor: true
-    });
+    const bar = progressBar("Recherche des tendances Google (PC et mobile)", 100);
 
     const googleTrendTab = await getGoogleTrends(client, 100);
 
@@ -98,12 +90,7 @@ const getUserInfo = async (client: Page): Promise<Response> => {
  * @param userInfo - The user info
  */
 const getmorePromo = async (client: Page, userInfo: Response) => {
-    const bar = new Bar({
-        format: 'Ouverture des promotions |' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total}',
-        barCompleteChar: '\u2588',
-        barIncompleteChar: '\u2591',
-        hideCursor: true
-    });
+    const bar = progressBar("Ouverture des promotions", 100);
 
     const morePromotionsObject = userInfo.dashboard.morePromotions;
 

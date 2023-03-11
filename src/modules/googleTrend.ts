@@ -1,20 +1,10 @@
 import {Page} from "puppeteer";
-import {wait} from "./utils.js";
+import {wait, progressBar} from "./utils.js";
 import {config} from "./config.js";
-import {Bar} from "cli-progress";
-import colors from "ansi-colors";
 
 const baseURL = config.gooogleTrends.baseURL;
 const countryCode = config.gooogleTrends.countryCode;
 const category = config.gooogleTrends.category;
-
-// Google Trends progress bar
-const bar = new Bar({
-    format: 'Récupération des tendances Google |' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total}',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    hideCursor: true
-});
 
 /**
  * Get Google Trends
@@ -28,7 +18,7 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
     await page.goto(URL);
     await page.waitForSelector(".feed-item");
 
-    bar.start(nbTrends, 0);
+    const bar = progressBar("Récupération des tendances Google", nbTrends);
     const maxTrends = nbTrends;
     let trends: string[] = [];
 
