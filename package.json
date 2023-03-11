@@ -2,11 +2,11 @@
   "name": "microsoft-rewards-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/app.js",
   "type": "module",
   "scripts": {
     "build": "rmdir /s /q dist && tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/app.js",
     "dev": "pnpm run build && pnpm run start"
   },
   "keywords": [],

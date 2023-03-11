@@ -88,7 +88,7 @@ const searchAction = async (client: Page) => {
 /**
  * Main function
  */
-const main = () => {
+const app = () => {
     puppeteer
         .use(StealthPlugin())
         .use(AdblockerPlugin({blockTrackers: true}))
@@ -128,5 +128,5 @@ const main = () => {
         });
 }
 
-main();
+app();
 
