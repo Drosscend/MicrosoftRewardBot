@@ -2,20 +2,10 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import {getGoogleTrends} from "./modules/googleTrend.js";
-import {progressBar, wait} from "./modules/utils.js";
+import {getPoints, getUserInfo, progressBar, search, wait} from "./modules/utils.js";
 import {config} from "./modules/config.js";
 import {Page} from "puppeteer";
 import {Response} from "./modules/Dashboard.js";
-
-/**
- * Make research on Bing
- * @param client - The puppeteer client
- * @param {string} query - The query to search
- */
-const search = async (client: Page, query: string | undefined) => {
-    await client.goto(`https://www.bing.com/search?q=${query}`);
-    await wait(500);
-};
 
 /**
  * Get Google Trend and make research on Bing on PC and mobile agent
@@ -40,6 +30,7 @@ const searchAction = async (client: Page) => {
             bar.update(i + nbTrends);
             await search(client, googleTrendTab[i]);
         }
+        bar.update(nbTrends * 2);
         bar.stop();
     } else {
         console.log("Aucune tendance Google n'a été trouvée");
@@ -69,27 +60,11 @@ const loginAction = async (client: Page) => {
 };
 
 /**
- * Get user info
- * @param client - The puppeteer client
- * @returns {Promise<Response>} - A promise that resolves after the login
- */
-const getUserInfo = async (client: Page): Promise<Response> => {
-    await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
-    const response = await client.$('pre');
-    if (response == null) {
-        throw new Error('No response');
-    }
-    const text = await response.getProperty('textContent');
-    const json = await text.jsonValue();
-    return JSON.parse(json!);
-}
-
-/**
  * Open promotions links
  * @param client - The puppeteer client
  * @param userInfo - The user info
  */
-const getmorePromo = async (client: Page, userInfo: Response) => {
+const promoAction = async (client: Page, userInfo: Response) => {
     const bar = progressBar("Ouverture des promotions", 100);
 
     const morePromotionsObject = userInfo.dashboard.morePromotions;
@@ -116,13 +91,6 @@ const getmorePromo = async (client: Page, userInfo: Response) => {
 //     return userInfo.dashboard.dailySetPromotions[0]!;
 // }
 
-/**
- * Get points
- * @param userInfo - The user info
- */
-const getPoints = async (userInfo: Response) => {
-    return userInfo.dashboard.userStatus.availablePoints
-}
 
 /**
  * Main function
@@ -155,7 +123,7 @@ const app = () => {
             console.log(`Points avant l'utilisation du script : ${pointBefore}`);
 
             // Get more promotions
-            await getmorePromo(page, userInfo);
+            await promoAction(page, userInfo);
 
             // Get Google Trend
             await searchAction(page);

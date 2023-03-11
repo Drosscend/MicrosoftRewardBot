@@ -1,5 +1,5 @@
 import {Page} from "puppeteer";
-import {wait, progressBar} from "./utils.js";
+import {progressBar, wait} from "./utils.js";
 import {config} from "./config.js";
 
 const baseURL = config.gooogleTrends.baseURL;
