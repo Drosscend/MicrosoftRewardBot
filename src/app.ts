@@ -4,8 +4,8 @@ import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import {getGoogleTrends} from "./modules/googleTrend.js";
 import {wait} from "./modules/utils.js";
 import {config} from "./modules/config.js";
-// import {Dashboard} from "./modules/Dashboard.js";
 import {Page} from "puppeteer";
+import {Response} from "./modules/Dashboard.js";
 
 /**
  * Make research on Bing
@@ -23,6 +23,7 @@ const search = async (client: Page, query: string | undefined) => {
  * @returns {Promise<void>} - A promise that resolves after the login
  */
 const loginAction = async (client: Page) => {
+    console.log("Connexion à Bing");
     await client.goto('https://rewards.bing.com/');
     await client.waitForSelector(`input[name="loginfmt"]`);
     await client.type(`input[name="loginfmt"]`, config.bing.username);
@@ -62,28 +63,43 @@ const searchAction = async (client: Page) => {
 /**
  * Get user info
  * @param client - The puppeteer client
+ * @returns {Promise<Response>} - A promise that resolves after the login
  */
-// const getUserInfo = async (client: Page): Promise<any> => {
-//     await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
-//     const response = await client.evaluate(() => {
-//         return document.querySelector('pre')?.innerHTML;
-//     });
-//     return JSON.parse(response!);
-// }
+const getUserInfo = async (client: Page): Promise<Response> => {
+    await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
+    const response = await client.$('pre');
+    if (response == null) {
+        throw new Error('No response');
+    }
+    const text = await response.getProperty('textContent');
+    const json = await text.jsonValue();
+    return JSON.parse(json!);
+}
 
-// const getmorePromo = async (userInfo: any) => {
-//     const morePromotionsObject = userInfo?.dashboard?.userStatus?.morePromotions;
-//     // morePromotions est un tableau d'objet
-//     // récupére le lien "destination" qui est dans morePromotions [] -> attributes -> destination
-//     // Si le tableau est vide, on ne fait rien
-//     if (morePromotionsObject.length > 0) {
-//         for (let i = 0; i < morePromotionsObject.length; i++) {
-//             const destination = morePromotionsObject[i].attributes.destination;
-//             console.log(destination);
-//             //await client.goto(destination);
-//         }
-//     }
-// }
+/**
+ * Open promotions links
+ * @param client - The puppeteer client
+ * @param userInfo - The user info
+ */
+const getmorePromo = async (client: Page, userInfo: Response) => {
+    console.log("Ouverture des promotions");
+    const morePromotionsObject = userInfo.dashboard.morePromotions;
+    for (let i = 0; i < morePromotionsObject.length; i++) {
+        if (!morePromotionsObject[i]!.complete && morePromotionsObject[i]!.isGiveEligible) {
+            console.log(`Ouverture de la page ${morePromotionsObject[i]!.attributes.title} pour obtenir ${morePromotionsObject[i]!.pointProgress} points`);
+            await client.goto(morePromotionsObject[i]!.destinationUrl);
+        }
+    }
+    console.log("Fin de l'ouverture des promotions");
+}
+
+/**
+ * Get points
+ * @param userInfo - The user info
+ */
+const getPoints = async (userInfo: Response) => {
+    return userInfo.dashboard.userStatus.availablePoints
+}
 
 /**
  * Main function
@@ -109,20 +125,31 @@ const app = () => {
             await loginAction(page);
 
             // Get user info
-            // const userInfo = await getUserInfo(page);
-            // if (userInfo != null) {
-            //     console.log("Points Bing avant : " + userInfo.userStatus.availablePoints);
-            // }
+            console.log("Récupération des informations de l'utilisateur");
+            const userInfo = await getUserInfo(page);
+
+            // Get points before
+            const pointBefore = await getPoints(userInfo);
+            console.log(`Vous avez ${pointBefore} points avant la recherche`);
 
             // Get more promotions
-            // await getmorePromo(userInfo);
+            await getmorePromo(page, userInfo);
+
+            // Get points after
+            console.log("Vous avez maintenant " + await getPoints(userInfo) + " points");
 
             // Get Google Trend
             await searchAction(page);
 
+            // Get points after
+            console.log("Vous avez maintenant " + await getPoints(userInfo) + " points");
+
             // Set user agent to default
             await page.setUserAgent(config.userAgent.pc);
 
+            const pointAfter = await getPoints(userInfo);
+            console.log(`Vous avez ${pointAfter} points après la recherche`);
+            console.log(`Vous avez gagné ${pointAfter - pointBefore} points`);
             await browser.close();
             console.log("Fin du script");
         });

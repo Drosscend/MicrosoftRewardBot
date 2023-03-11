@@ -1,4 +1,8 @@
-export interface Dashboard {
+export interface Response {
+    dashboard: Dashboard;
+}
+
+interface Dashboard {
     userStatus: UserStatus;
     promotionalItem: null;
     dailySetPromotions: { [key: string]: Promotion[] };
