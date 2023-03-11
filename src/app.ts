@@ -6,6 +6,8 @@ import {wait} from "./modules/utils.js";
 import {config} from "./modules/config.js";
 import {Page} from "puppeteer";
 import {Response} from "./modules/Dashboard.js";
+import {Bar} from "cli-progress";
+import colors from "ansi-colors";
 
 /**
  * Make research on Bing
@@ -14,8 +16,43 @@ import {Response} from "./modules/Dashboard.js";
  */
 const search = async (client: Page, query: string | undefined) => {
     await client.goto(`https://www.bing.com/search?q=${query}`);
-    await wait(2000);
+    await wait(500);
 };
+
+/**
+ * Get Google Trend and make research on Bing on PC and mobile agent
+ * @param client - The puppeteer client
+ */
+const searchAction = async (client: Page) => {
+    // Search progress bar
+    const bar = new Bar({
+        format: 'Recherche des tendances Google (PC et mobile) |' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total}',
+        barCompleteChar: '\u2588',
+        barIncompleteChar: '\u2591',
+        hideCursor: true
+    });
+
+    const googleTrendTab = await getGoogleTrends(client, 100);
+
+    if (googleTrendTab != null) {
+        const nbTrends = googleTrendTab.length;
+        bar.start(nbTrends * 2, 0);
+        await client.setUserAgent(config.userAgent.pc);
+        for (let i = 0; i < nbTrends; i++) {
+            bar.update(i);
+            await search(client, googleTrendTab[i])
+        }
+
+        await client.setUserAgent(config.userAgent.mobile);
+        for (let i = 0; i < nbTrends; i++) {
+            bar.update(i + nbTrends);
+            await search(client, googleTrendTab[i]);
+        }
+        bar.stop();
+    } else {
+        console.log("Aucune tendance Google n'a été trouvée");
+    }
+}
 
 /**
  * Login to Bing
@@ -24,6 +61,7 @@ const search = async (client: Page, query: string | undefined) => {
  */
 const loginAction = async (client: Page) => {
     console.log("Connexion à Bing");
+
     await client.goto('https://rewards.bing.com/');
     await client.waitForSelector(`input[name="loginfmt"]`);
     await client.type(`input[name="loginfmt"]`, config.bing.username);
@@ -37,28 +75,6 @@ const loginAction = async (client: Page) => {
 
     console.log("Connexion à Bing réussie");
 };
-
-/**
- * Get Google Trend and make research on Bing on PC and mobile agent
- * @param client - The puppeteer client
- */
-const searchAction = async (client: Page) => {
-    const googleTrendTab = await getGoogleTrends(client, 100);
-    if (googleTrendTab != null) {
-        console.log("Recherche des tendances Google avec un user agent PC");
-        await client.setUserAgent(config.userAgent.pc);
-        for (let i = 0; i < googleTrendTab.length; i++) {
-            await search(client, googleTrendTab[i])
-        }
-        console.log("Recherche des tendances Google avec un user agent mobile");
-        await client.setUserAgent(config.userAgent.mobile);
-        for (let i = 0; i < googleTrendTab.length; i++) {
-            await search(client, googleTrendTab[i]);
-        }
-    } else {
-        console.log("Aucune tendance Google n'a été trouvée");
-    }
-}
 
 /**
  * Get user info
@@ -82,16 +98,36 @@ const getUserInfo = async (client: Page): Promise<Response> => {
  * @param userInfo - The user info
  */
 const getmorePromo = async (client: Page, userInfo: Response) => {
-    console.log("Ouverture des promotions");
+    const bar = new Bar({
+        format: 'Ouverture des promotions |' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total}',
+        barCompleteChar: '\u2588',
+        barIncompleteChar: '\u2591',
+        hideCursor: true
+    });
+
     const morePromotionsObject = userInfo.dashboard.morePromotions;
-    for (let i = 0; i < morePromotionsObject.length; i++) {
+
+    const nbPromo = morePromotionsObject.length;
+    bar.start(nbPromo, 0);
+
+    for (let i = 0; i < nbPromo; i++) {
+        bar.update(i);
         if (!morePromotionsObject[i]!.complete && morePromotionsObject[i]!.isGiveEligible) {
-            console.log(`Ouverture de la page ${morePromotionsObject[i]!.attributes.title} pour obtenir ${morePromotionsObject[i]!.pointProgress} points`);
             await client.goto(morePromotionsObject[i]!.destinationUrl);
         }
     }
-    console.log("Fin de l'ouverture des promotions");
+    bar.update(nbPromo);
+    bar.stop();
 }
+
+/**
+ * Get today promotion
+ * @param userInfo - The user info
+ * @returns {Promise<Promotion[]>} - A promise containt the 3 today promotion
+ */
+// const getToDayPromotion = async (userInfo: Response): Promise<Promotion[]> => {
+//     return userInfo.dashboard.dailySetPromotions[0]!;
+// }
 
 /**
  * Get points
@@ -125,31 +161,23 @@ const app = () => {
             await loginAction(page);
 
             // Get user info
-            console.log("Récupération des informations de l'utilisateur");
             const userInfo = await getUserInfo(page);
 
             // Get points before
             const pointBefore = await getPoints(userInfo);
-            console.log(`Vous avez ${pointBefore} points avant la recherche`);
+            console.log(`Points avant l'utilisation du script : ${pointBefore}`);
 
             // Get more promotions
             await getmorePromo(page, userInfo);
 
-            // Get points after
-            console.log("Vous avez maintenant " + await getPoints(userInfo) + " points");
-
             // Get Google Trend
             await searchAction(page);
-
-            // Get points after
-            console.log("Vous avez maintenant " + await getPoints(userInfo) + " points");
 
             // Set user agent to default
             await page.setUserAgent(config.userAgent.pc);
 
             const pointAfter = await getPoints(userInfo);
-            console.log(`Vous avez ${pointAfter} points après la recherche`);
-            console.log(`Vous avez gagné ${pointAfter - pointBefore} points`);
+            console.log(`Points après l'utilisation du script : ${pointAfter} | (${pointAfter - pointBefore} points lors de l'utilisation du script)`);
             await browser.close();
             console.log("Fin du script");
         });
