@@ -6,36 +6,7 @@ import {getPoints, getUserInfo, progressBar, search, wait} from "./modules/utils
 import {config} from "./modules/config.js";
 import {Page} from "puppeteer";
 import {Response} from "./modules/Dashboard.js";
-
-/**
- * Get Google Trend and make research on Bing on PC and mobile agent
- * @param client - The puppeteer client
- */
-const searchAction = async (client: Page) => {
-    const bar = progressBar("Recherche des tendances Google (PC et mobile)", 100);
-
-    const googleTrendTab = await getGoogleTrends(client, 100);
-
-    if (googleTrendTab != null) {
-        const nbTrends = googleTrendTab.length;
-        bar.start(nbTrends * 2, 0);
-        await client.setUserAgent(config.userAgent.pc);
-        for (let i = 0; i < nbTrends; i++) {
-            bar.update(i);
-            await search(client, googleTrendTab[i])
-        }
-
-        await client.setUserAgent(config.userAgent.mobile);
-        for (let i = 0; i < nbTrends; i++) {
-            bar.update(i + nbTrends);
-            await search(client, googleTrendTab[i]);
-        }
-        bar.update(nbTrends * 2);
-        bar.stop();
-    } else {
-        console.log("Aucune tendance Google n'a été trouvée");
-    }
-}
+import colors from "ansi-colors";
 
 /**
  * Login to Bing
@@ -83,14 +54,35 @@ const promoAction = async (client: Page, userInfo: Response) => {
 }
 
 /**
- * Get today promotion
- * @param userInfo - The user info
- * @returns {Promise<Promotion[]>} - A promise containt the 3 today promotion
+ * Get Google Trend and make research on Bing on PC and mobile agent
+ * @param client - The puppeteer client
+ * @param nbTends - The number of trends to get
  */
-// const getToDayPromotion = async (userInfo: Response): Promise<Promotion[]> => {
-//     return userInfo.dashboard.dailySetPromotions[0]!;
-// }
+const searchAction = async (client: Page, nbTends: number) => {
+    const bar = progressBar("Recherche des tendances Google (PC et mobile)", nbTends);
 
+    const googleTrendTab = await getGoogleTrends(client, nbTends);
+
+    if (googleTrendTab != null) {
+        const nbTrends = googleTrendTab.length;
+        bar.start(nbTrends * 2, 0);
+        await client.setUserAgent(config.userAgent.pc);
+        for (let i = 0; i < nbTrends; i++) {
+            bar.update(i);
+            await search(client, googleTrendTab[i])
+        }
+
+        await client.setUserAgent(config.userAgent.mobile);
+        for (let i = 0; i < nbTrends; i++) {
+            bar.update(i + nbTrends);
+            await search(client, googleTrendTab[i]);
+        }
+        bar.update(nbTrends * 2);
+        bar.stop();
+    } else {
+        console.log("Aucune tendance Google n'a été trouvée");
+    }
+}
 
 /**
  * Main function
@@ -116,27 +108,25 @@ const app = () => {
             await loginAction(page);
 
             // Get user info
-            const userInfo = await getUserInfo(page);
+            let userInfo = await getUserInfo(page);
 
             // Get points before
             const pointBefore = await getPoints(userInfo);
-            console.log(`Points avant l'utilisation du script : ${pointBefore}`);
+            console.log(`Points avant l'utilisation du script : ${colors.cyan(String(pointBefore))}`);
 
-            // Get more promotions
             await promoAction(page, userInfo);
 
-            // Get Google Trend
-            await searchAction(page);
+            await searchAction(page, 100);
 
-            // Set user agent to default
             await page.setUserAgent(config.userAgent.pc);
 
+            // Update user info
+            userInfo = await getUserInfo(page);
             const pointAfter = await getPoints(userInfo);
-            console.log(`Points après l'utilisation du script : ${pointAfter} | (${pointAfter - pointBefore} points lors de l'utilisation du script)`);
+            console.log(`Points après l'utilisation du script : ${colors.cyan(String(pointAfter))} | Gain : ${colors.green(String(pointAfter - pointBefore))}`);
             await browser.close();
             console.log("Fin du script");
         });
 }
 
 app();
-

@@ -34,7 +34,7 @@ export const progressBar = (title: string, nbTrends: number): Bar => {
  */
 export const search = async (client: Page, query: string | undefined) => {
     await client.goto(`https://www.bing.com/search?q=${query}`);
-    await wait(500);
+    await wait(1000);
 };
 
 /**
@@ -43,20 +43,22 @@ export const search = async (client: Page, query: string | undefined) => {
  * @returns {Promise<Response>} - A promise that resolves after the login
  */
 export const getUserInfo = async (client: Page): Promise<Response> => {
-    await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
-    const response = await client.$('pre');
-    if (response == null) {
-        throw new Error('No response');
+    const response = await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
+    if (response) {
+        if (!response.ok()) {
+            throw new Error(`Failed to get user info: ${response.status()} - ${response.statusText()}`);
+        }
+        const body = await response.text();
+        return JSON.parse(body);
+    } else {
+        throw new Error('Failed to get user info');
     }
-    const text = await response.getProperty('textContent');
-    const json = await text.jsonValue();
-    return JSON.parse(json!);
 }
 
-export /**
+/**
  * Get points
  * @param userInfo - The user info
  */
-const getPoints = async (userInfo: Response) => {
+export const getPoints = async (userInfo: Response) => {
     return userInfo.dashboard.userStatus.availablePoints
 }
