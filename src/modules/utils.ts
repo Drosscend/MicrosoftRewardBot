@@ -13,17 +13,17 @@ export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve,
 /**
  * Create a progress bar
  * @param title - The title of the progress bar
- * @param nbTrends - The number of trends to get
+ * @param total - The number of trends to get
  * @returns {Bar} - The progress bar
  */
-export const progressBar = (title: string, nbTrends: number): Bar => {
+export const progressBar = (title: string, total: number): Bar => {
     const bar = new Bar({
         format: `${title} |` + colors.cyan('{bar}') + '| {percentage}% || {value}/{total}',
         barCompleteChar: '\u2588',
         barIncompleteChar: '\u2591',
         hideCursor: true
     });
-    bar.start(nbTrends, 0);
+    bar.start(total, 0);
     return bar;
 }
 

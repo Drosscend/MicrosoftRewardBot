@@ -36,19 +36,18 @@ const loginAction = async (client: Page) => {
  * @param userInfo - The user info
  */
 const promoAction = async (client: Page, userInfo: Response) => {
-    const bar = progressBar("Ouverture des promotions", 100);
-
-    const morePromotionsObject = userInfo.dashboard.morePromotions;
-
+    const morePromotionsObject = userInfo.dashboard.morePromotions.filter(
+        (promo) => !promo.complete && promo.pointProgressMax > 0 && promo.isGiveEligible
+    );
     const nbPromo = morePromotionsObject.length;
-    bar.start(nbPromo, 0);
+    const bar = progressBar("Ouverture des promotions", nbPromo);
 
     for (let i = 0; i < nbPromo; i++) {
         bar.update(i);
-        if (!morePromotionsObject[i]!.complete && morePromotionsObject[i]!.isGiveEligible) {
-            await client.goto(morePromotionsObject[i]!.destinationUrl);
-        }
+        await client.goto(morePromotionsObject[i]!.destinationUrl);
+        await wait(1000);
     }
+
     bar.update(nbPromo);
     bar.stop();
 }
@@ -100,8 +99,9 @@ const app = () => {
         )
         .then(async browser => {
             const page = await browser.newPage();
-            await page.setViewport({width: 1200, height: 700});
+            await page.setViewport({width: 910, height: 1080});
             await page.setDefaultNavigationTimeout(60000);
+            await page.setDefaultTimeout(60000);
             await page.setUserAgent(config.userAgent.pc);
 
             //Login
