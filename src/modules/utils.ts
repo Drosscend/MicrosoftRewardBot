@@ -32,9 +32,10 @@ export const progressBar = (title: string, total: number): Bar => {
  * @param client - The puppeteer client
  * @param {string} query - The query to search
  */
-export const search = async (client: Page, query: string | undefined) => {
+export const Bingsearch = async (client: Page, query: string | undefined) => {
     await client.goto(`https://www.bing.com/search?q=${query}`);
-    await wait(1000);
+    const random = Math.floor(Math.random() * 6000) + 1000;
+    await wait(random);
 };
 
 /**

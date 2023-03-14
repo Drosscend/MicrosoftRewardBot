@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import {getGoogleTrends} from "./modules/googleTrend.js";
-import {getPoints, getUserInfo, progressBar, search, wait} from "./modules/utils.js";
+import {getPoints, getUserInfo, progressBar, Bingsearch, wait} from "./modules/utils.js";
 import {config} from "./modules/config.js";
 import {Page} from "puppeteer";
 import {Response} from "./modules/Dashboard.js";
@@ -17,17 +17,32 @@ const loginAction = async (client: Page) => {
     console.log("Connexion à Bing");
 
     await client.goto('https://rewards.bing.com/');
+
     await client.waitForSelector(`input[name="loginfmt"]`);
     await client.type(`input[name="loginfmt"]`, config.bing.username);
     await client.click(`input[id="idSIButton9"]`);
     await wait(2000);
-
+    
     await client.waitForSelector(`input[name="passwd"]`);
     await client.type(`input[name="passwd"]`, config.bing.password);
     await client.click(`input[id="idSIButton9"]`);
     await wait(2000);
 
-    console.log("Connexion à Bing réussie");
+    // Vérification de l'authentification à 2 facteurs
+    const twoFactorAuth = await client.$(`input[name="otc"]`);
+    if (twoFactorAuth != null) {
+        await client.close();
+        throw new Error("Le compte Bing possède une authentification à 2 facteurs, veuillez la désactiver");
+    }
+
+    // Vérification de la connexion
+    const pageTitle = await client.title();
+    if (pageTitle !== "Microsoft Rewards") {
+        await client.close();
+        throw new Error("Erreur lors de la connexion à Bing");
+    } else {
+        console.log("Connexion à Bing réussie");
+    }
 };
 
 /**
@@ -68,13 +83,13 @@ const searchAction = async (client: Page, nbTends: number) => {
         await client.setUserAgent(config.userAgent.pc);
         for (let i = 0; i < nbTrends; i++) {
             bar.update(i);
-            await search(client, googleTrendTab[i])
+            await Bingsearch(client, googleTrendTab[i])
         }
 
         await client.setUserAgent(config.userAgent.mobile);
         for (let i = 0; i < nbTrends; i++) {
             bar.update(i + nbTrends);
-            await search(client, googleTrendTab[i]);
+            await Bingsearch(client, googleTrendTab[i]);
         }
         bar.update(nbTrends * 2);
         bar.stop();
