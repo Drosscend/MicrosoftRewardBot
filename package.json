@@ -1,7 +1,7 @@
 {
   "name": "microsoft-rewards-bot",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "Automatisation de bing reward en TypeScript",
   "main": "dist/app.js",
   "type": "module",
   "scripts": {
@@ -9,22 +9,22 @@
     "start": "node .",
     "dev": "pnpm run build && pnpm run start"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["bot","typescript","bing","puppeteer","microsoft-rewards"],
+  "author": "Drosscend#6715",
   "license": "ISC",
   "dependencies": {
-    "@types/cli-progress": "^3.11.0",
-    "ansi-colors": "^4.1.3",
-    "cli-progress": "^3.12.0",
-    "dotenv": "^16.0.3",
-    "edge-paths": "^3.0.5",
     "puppeteer": "^19.7.4",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-adblocker": "^2.13.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "edge-paths": "^3.0.5",
+    "dotenv": "^16.0.3",
+    "ansi-colors": "^4.1.3",
+    "cli-progress": "^3.12.0"
   },
   "devDependencies": {
     "@types/node": "^18.15.0",
+    "@types/cli-progress": "^3.11.0",
     "typescript": "^4.9.5"
   }
 }
