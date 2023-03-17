@@ -1,7 +1,8 @@
 import {Bar} from "cli-progress";
 import colors from "ansi-colors";
 import {Page} from "puppeteer";
-import {Response} from "./Dashboard";
+import {Response} from "./Dashboard.js";
+import {config} from "./config.js";
 
 /**
  * Wait for a given amount of time
@@ -18,7 +19,7 @@ export const wait = (ms: number): Promise<void> => {
  * @param {number} max - The maximum amount of time to wait in milliseconds
  * @returns {Promise} - A promise that resolves after the given amount of time
  */
-export const waitRandom = (min:number, max: number): Promise<void> => {
+export const waitRandom = (min: number, max: number): Promise<void> => {
     const random = Math.floor(Math.random() * (max - min + 1)) + min;
     return new Promise((resolve) => setTimeout(resolve, random));
 }
@@ -75,4 +76,18 @@ export const getUserInfo = async (client: Page): Promise<Response> => {
  */
 export const getPoints = async (userInfo: Response) => {
     return userInfo.dashboard.userStatus.availablePoints
+}
+
+/**
+ * Login to Bing
+ * @param client - The puppeteer client
+ * @returns {Promise<void>} - A promise that resolves after the login
+ */
+export const promoLogin = async (client: Page): Promise<void> => {
+    await client.click(`a[target="_top"]`);
+    await wait(1000);
+    await client.waitForSelector(`#i0118`);
+    await client.type(`#i0118`, config.bing.password);
+    await client.click(`#idSIButton9`);
+    await wait(1000);
 }

@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import {getGoogleTrends} from "./modules/googleTrend.js";
-import {getPoints, getUserInfo, progressBar, Bingsearch, wait, waitRandom} from "./modules/utils.js";
+import {Bingsearch, getPoints, getUserInfo, progressBar, promoLogin, wait, waitRandom} from "./modules/utils.js";
 import {config} from "./modules/config.js";
 import {Page} from "puppeteer";
 import {Response} from "./modules/Dashboard.js";
@@ -78,28 +78,46 @@ const dailySetPromotions = async (client: Page, userInfo: Response): Promise<voi
             await waitRandom(1500, 2500);
             bar.update(i);
 
+            // Si le type de la promotion est une simple url
             if (promotions[i]!.promotionType === "urlreward") {
                 await client.goto(promotions[i]!.destinationUrl);
             } else if (promotions[i]!.promotionType === "quiz") {
+                await client.goto(promotions[i]!.destinationUrl);
                 // vérification de si le quiz est un sondage
                 if (promotions[i]!.title.includes("Sondage")) {
-                    await client.goto(promotions[i]!.destinationUrl);
-
-                    // vérification d'une demande de connexion en récupérant le bouton de connexion
+                    // vérification d'une possible demande de connexion
                     const login = await client.$(`a[target="_top"]`);
-
                     if (login) {
-                        await client.click(`a[target="_top"]`);
-                        await wait(1000);
-                        await client.waitForSelector(`#i0118`);
-                        await client.type(`#i0118`, config.bing.password);
-                        await client.click(`#idSIButton9`);
-                        await wait(1000);
+                        await promoLogin(client);
                     }
 
-                    // reponse 1 ou 2 (aléatoire)
-                    const reponse = Math.floor(Math.random() * 2) + 1;
+                    // reponse 0 ou 1 (aléatoire)
+                    const reponse = ["btoption0", "btoption1"][Math.floor(Math.random() * 2)];
                     await client.click(`#btoption${reponse}`);
+                } else if (promotions[i]!.title.includes("Quiz")) {
+                    // vérification d'une possible demande de connexion
+                    const login = await client.$(`a[target="_top"]`);
+                    if (login) {
+                        await promoLogin(client);
+                    }
+
+                    // Tant que le quiz n'est pas fini TODO
+                    while (await client.$(`div[id="quizCompleteContainer"]`) == null) {
+                        //Tant que les rqMCredits ne sont pas chargés
+                        let rqMCreditsBefore = await client.$(`div[id="rqMCredits"]`);
+                        let rqMCreditsAfter = await client.$(`div[id="rqMCredits"]`);
+
+                        while (rqMCreditsBefore == rqMCreditsAfter) {
+                            for (let i = 1; i < 8; i++) {
+                                await client.click(`div[id="rqM${i}"]`);
+                                await waitRandom(1000, 2000);
+                                rqMCreditsAfter = await client.$(`div[id="rqMCredits"]`);
+                                if (rqMCreditsBefore != rqMCreditsAfter) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -146,7 +164,7 @@ const promoAction = async (client: Page, userInfo: Response): Promise<void> => {
 const searchAction = async (client: Page, nbTends: number, userInfo: Response): Promise<void> => {
     // Vérification de la possibilité de gagner d'autres points
     const pointsPC = userInfo.dashboard.userStatus.counters.pcSearch[0]?.complete
-    const pointsMobile = userInfo.dashboard.userStatus.counters.mobileSearch[0]?.complete
+    const pointsMobile = userInfo.dashboard.userStatus.counters.mobileSearch ? userInfo.dashboard.userStatus.counters.mobileSearch[0]?.complete : false;
     if (pointsPC && pointsMobile) {
         console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur PC et mobile"));
         return;
@@ -192,7 +210,7 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response): 
  */
 const showWelcomeMessage = (): void => {
     console.log(colors.white("Bienvenue sur ce scpript permettant de gagner des points Bing"));
-    console.log(colors.white("Ce script est open source et disponible sur GitHub : https://github.com/Drosscend/MiscrosoftRewardBot"));
+    console.log(colors.white("Ce script est open source et disponible sur GitHub : https://github.com/Drosscend/MicrosoftRewardBot"));
     console.log(colors.white("Vous pouvez me contacter sur discord si vous avez des questions ou des remarques Drosscend#6715"));
     console.log(colors.white("J'ai réalisé ce script pour mettre en pratiques mes connaissances en TypeScript et pour m'amuser"));
     console.log(colors.red("Ce script est à utiliser à vos risques et périls"));
@@ -262,4 +280,13 @@ const app = (): void => {
         });
 }
 
-app();
+try {
+    app();
+} catch (e) {
+    if (config.puppeteer.headless) {
+        console.log(colors.red("Une erreur est survenue, veuillez lancer le script en mode non headless pour plus d'informations"));
+    } else {
+        console.log(colors.red("Une erreur est survenue :"));
+    }
+    console.log(e);
+}

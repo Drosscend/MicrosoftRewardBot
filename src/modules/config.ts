@@ -13,7 +13,7 @@ export const config = {
         password: process.env['BING_PASSWORD'],
     },
     puppeteer: {
-        headless: true,
+        headless: false,
         executablePath: getEdgePath(),
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
     },
@@ -21,7 +21,7 @@ export const config = {
         baseURL: 'https://trends.google.com',
         countryCode: 'FR',
         category: 'all',
-        nbBingSearch: 100,
+        nbBingSearch: 40,
     },
     userAgent: {
         pc: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.0.0',
