@@ -21,6 +21,7 @@ export const config = {
         baseURL: 'https://trends.google.com',
         countryCode: 'FR',
         category: 'all',
+        nbBingSearch: 100,
     },
     userAgent: {
         pc: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.0.0',
@@ -30,7 +31,6 @@ export const config = {
         doDailySetPromotions: true,
         doMorePromotions: true,
         doDailySearch: true,
-        nbBingSearch: 100,
     }
 }
 

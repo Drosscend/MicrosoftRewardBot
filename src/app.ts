@@ -26,7 +26,7 @@ const loginAction = async (client: Page): Promise<void> => {
     await client.waitForSelector(`input[name="passwd"]`);
     await client.type(`input[name="passwd"]`, config.bing.password);
     await client.click(`input[id="idSIButton9"]`);
-    await wait(2000);
+    await wait(3000);
 
     // Vérification de l'authentification à 2 facteurs
     const twoFactorAuth = await client.$(`input[name="otc"]`);
@@ -191,11 +191,21 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response): 
  * Welcome message
  */
 const showWelcomeMessage = (): void => {
-    console.log(colors.green("Bienvenue sur ce scpript permettant de gagner des points Bing"));
-    console.log(colors.green("Ce script est open source et disponible sur GitHub : https://github.com/Drosscend/MiscrosoftRewardBot"));
-    console.log(colors.green("Vous pouvez me contacter sur discord si vous avez des questions ou des remarques Drosscend#6715"));
-    console.log(colors.green("J'ai réalisé ce script pour mettre en pratiques mes connaissances en TypeScript et pour m'amuser"));
+    console.log(colors.white("Bienvenue sur ce scpript permettant de gagner des points Bing"));
+    console.log(colors.white("Ce script est open source et disponible sur GitHub : https://github.com/Drosscend/MiscrosoftRewardBot"));
+    console.log(colors.white("Vous pouvez me contacter sur discord si vous avez des questions ou des remarques Drosscend#6715"));
+    console.log(colors.white("J'ai réalisé ce script pour mettre en pratiques mes connaissances en TypeScript et pour m'amuser"));
     console.log(colors.red("Ce script est à utiliser à vos risques et périls"));
+    console.log("--------------------------------------------");
+    // Affichage de la configuration
+    console.log(colors.white("Configuration :"));
+    console.log(colors.white(`- Utilisateur : ${colors.green(config.bing.username)}`));
+    console.log(colors.white(`- Mode headless : ${config.puppeteer.headless ? colors.green("Actif") : colors.red("Inactif")}`));
+    console.log(colors.white(`- Nombre de tendances Google à rechercher : ${colors.green(config.gooogleTrends.nbBingSearch.toString())}`));
+    console.log(colors.white(`- Réalisation des promotions du jour : ${config.app.doDailySetPromotions ? colors.green("Actif") : colors.red("Inactif")}`));
+    console.log(colors.white(`- Réalisation des promotions supplémentaires : ${config.app.doDailySetPromotions ? colors.green("Actif") : colors.red("Inactif")}`));
+    console.log(colors.white(`- Réalisation des recherches Bing : ${config.app.doDailySetPromotions ? colors.green("Actif") : colors.red("Inactif")}`));
+    console.log("--------------------------------------------");
 }
 
 /**
@@ -239,7 +249,7 @@ const app = (): void => {
             if (config.app.doMorePromotions) await promoAction(page, userInfo);
 
             // Search
-            if (config.app.doDailySearch) await searchAction(page, config.app.nbBingSearch, userInfo);
+            if (config.app.doDailySearch) await searchAction(page, config.gooogleTrends.nbBingSearch, userInfo);
 
             // Update user info
             userInfo = await getUserInfo(page);
