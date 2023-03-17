@@ -13,7 +13,7 @@ export const config = {
         password: process.env['BING_PASSWORD'],
     },
     puppeteer: {
-        headless: false,
+        headless: true,
         executablePath: getEdgePath(),
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
     },

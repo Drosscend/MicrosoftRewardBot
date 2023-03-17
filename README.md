@@ -8,6 +8,7 @@ I am not responsible for the use of this bot. Use it at your own risk.
 - Edge browser
 
 ## Actual features
+- [x] Headless mode
 - [x] Search on bing (desktop and mobile)
 - [x] Open promotional links
 - [x] Polls

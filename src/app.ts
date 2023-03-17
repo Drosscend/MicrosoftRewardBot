@@ -35,6 +35,13 @@ const loginAction = async (client: Page): Promise<void> => {
         throw new Error("Le compte Bing possède une authentification à 2 facteurs, veuillez la désactiver");
     }
 
+    // Vérification d'une popup pour rester connecté
+    const stayConnected = await client.$(`input[id="idSIButton9"]`);
+    if (stayConnected != null) {
+        await client.click(`input[id="idSIButton9"]`);
+        await wait(2000);
+    }
+
     // Vérification de la connexion
     const pageTitle = await client.title();
     if (pageTitle !== "Microsoft Rewards") {
