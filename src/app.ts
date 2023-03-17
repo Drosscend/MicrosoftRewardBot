@@ -161,9 +161,21 @@ const dailySetPromotions = async (client: Page, userInfo: Response) => {
 }
 
 /**
+ * Welcome message
+ */
+const showWelcomeMessage = () => {
+    console.log(colors.green("Bienvenue sur ce scpript permettant de gagner des points Bing"));
+    console.log(colors.green("Ce script est open source et disponible sur GitHub : https://github.com/Drosscend/MiscrosoftRewardBot"));
+    console.log(colors.green("Vous pouvez me contacter sur discord si vous avez des questions ou des remarques Drosscend#6715"));
+    console.log(colors.green("J'ai réalisé ce script pour mettre en pratiques mes connaissances en TypeScript et pour m'amuser"));
+    console.log(colors.red("Ce script est à utiliser à vos risques et périls"));
+}
+
+/**
  * Main function
  */
 const app = () => {
+    showWelcomeMessage();
     puppeteer
         .use(StealthPlugin())
         .use(AdblockerPlugin({blockTrackers: true}))
