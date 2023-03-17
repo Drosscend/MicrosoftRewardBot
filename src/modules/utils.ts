@@ -57,6 +57,7 @@ export const Bingsearch = async (client: Page, query: string | undefined) => {
  */
 export const getUserInfo = async (client: Page): Promise<Response> => {
     const response = await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
+
     if (response) {
         if (!response.ok()) {
             throw new Error(`Failed to get user info: ${response.status()} - ${response.statusText()}`);

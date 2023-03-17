@@ -13,7 +13,7 @@ import colors from "ansi-colors";
  * @param client - The puppeteer client
  * @returns {Promise<void>} - A promise that resolves after the login
  */
-const loginAction = async (client: Page) => {
+const loginAction = async (client: Page): Promise<void> => {
     console.log("Connexion à Bing");
 
     await client.goto('https://rewards.bing.com/');
@@ -22,7 +22,7 @@ const loginAction = async (client: Page) => {
     await client.type(`input[name="loginfmt"]`, config.bing.username);
     await client.click(`input[id="idSIButton9"]`);
     await wait(2000);
-    
+
     await client.waitForSelector(`input[name="passwd"]`);
     await client.type(`input[name="passwd"]`, config.bing.password);
     await client.click(`input[id="idSIButton9"]`);
@@ -47,15 +47,71 @@ const loginAction = async (client: Page) => {
 };
 
 /**
+ * DailySetPromotions
+ * @param client - The puppeteer client
+ * @param userInfo - The user info
+ * @returns {Promise<void>} - A promise that resolves after the DailySetPromotions
+ */
+const dailySetPromotions = async (client: Page, userInfo: Response): Promise<void> => {
+    const todayDate = new Date().toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'});
+    const dailySetPromotions = userInfo.dashboard.dailySetPromotions[todayDate];
+
+    if (dailySetPromotions != null) {
+        const promotions = dailySetPromotions.filter((promo) => !promo.complete && promo.pointProgressMax > 0 && promo.isGiveEligible);
+        const nbPromo = promotions.length;
+
+        if (nbPromo === 0) {
+            console.log(colors.yellow("Vous avez déjà gagné les points quotidiens des promotions quotidiennes"));
+            return;
+        }
+
+        const bar = progressBar("Ouverture des promotions quotidiennes", nbPromo);
+
+        for (let i = 0; i < nbPromo; i++) {
+            await waitRandom(1500, 2500);
+            bar.update(i);
+
+            if (promotions[i]!.promotionType === "urlreward") {
+                await client.goto(promotions[i]!.destinationUrl);
+            } else if (promotions[i]!.promotionType === "quiz") {
+                // vérification de si le quiz est un sondage
+                if (promotions[i]!.title.includes("Sondage")) {
+                    await client.goto(promotions[i]!.destinationUrl);
+
+                    // vérification d'une demande de connexion en récupérant le bouton de connexion
+                    const login = await client.$(`a[target="_top"]`);
+
+                    if (login) {
+                        await client.click(`a[target="_top"]`);
+                        await wait(1000);
+                        await client.waitForSelector(`#i0118`);
+                        await client.type(`#i0118`, config.bing.password);
+                        await client.click(`#idSIButton9`);
+                        await wait(1000);
+                    }
+
+                    // reponse 1 ou 2 (aléatoire)
+                    const reponse = Math.floor(Math.random() * 2) + 1;
+                    await client.click(`#btoption${reponse}`);
+                }
+            }
+        }
+    }
+}
+
+/**
  * Open promotions links
  * @param client - The puppeteer client
  * @param userInfo - The user info
+ * @returns {Promise<void>} - A promise that resolves after the promotions links opening
  */
-const promoAction = async (client: Page, userInfo: Response) => {
+const promoAction = async (client: Page, userInfo: Response): Promise<void> => {
     const morePromotionsObject = userInfo.dashboard.morePromotions.filter(
-        (promo) => !promo.complete && promo.promotionType === "urlreward"
+        (promo) => !promo.complete && promo.promotionType === "urlreward" && promo.pointProgressMax > 0
     );
+
     const nbPromo = morePromotionsObject.length;
+
     if (nbPromo === 0) {
         console.log(colors.yellow("Vous avez déjà gagné les points des promotions"));
         return;
@@ -77,8 +133,10 @@ const promoAction = async (client: Page, userInfo: Response) => {
  * Get Google Trend and make research on Bing on PC and mobile agent
  * @param client - The puppeteer client
  * @param nbTends - The number of trends to get
+ * @param userInfo - The user info
+ * @returns {Promise<void>} - A promise that resolves after the research
  */
-const searchAction = async (client: Page, nbTends: number, userInfo: Response) => {
+const searchAction = async (client: Page, nbTends: number, userInfo: Response): Promise<void> => {
     // Vérification de la possibilité de gagner d'autres points
     const pointsPC = userInfo.dashboard.userStatus.counters.pcSearch[0]?.complete
     const pointsMobile = userInfo.dashboard.userStatus.counters.mobileSearch[0]?.complete
@@ -92,78 +150,40 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response) =
     if (googleTrendTab != null) {
         if (!pointsPC) {
             const bar = progressBar("Recherche des tendances Google sur PC", nbTends);
+
             await client.setUserAgent(config.userAgent.pc);
             for (let i = 0; i < nbTends; i++) {
                 bar.update(i);
                 await Bingsearch(client, googleTrendTab[i])
             }
+
             bar.update(nbTends);
             bar.stop();
         }
+
         if (!pointsMobile) {
             const bar = progressBar("Recherche des tendances Google sur mobile", nbTends);
+
             await client.setUserAgent(config.userAgent.mobile);
             for (let i = 0; i < nbTends; i++) {
                 bar.update(i);
                 await Bingsearch(client, googleTrendTab[i]);
             }
+
             bar.update(nbTends);
             bar.stop();
         }
+
+        await client.setUserAgent(config.userAgent.pc);
     } else {
         console.log("Aucune tendance Google n'a été trouvée");
     }
 }
 
 /**
- * DailySetPromotions
- */
-const dailySetPromotions = async (client: Page, userInfo: Response) => {
-    const today = new Date().toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'});
-    const dailySetPromotions = userInfo.dashboard.dailySetPromotions[today];
-    if (dailySetPromotions != null) {
-        const promotions = dailySetPromotions.filter((promo) => !promo.complete && promo.pointProgressMax > 0 && promo.isGiveEligible);
-        const nbPromo = promotions.length;
-        if (nbPromo === 0) {
-            console.log(colors.yellow("Vous avez déjà gagné les points quotidiens des promotions quotidiennes"));
-            return;
-        }
-
-        const bar = progressBar("Ouverture des promotions quotidiennes", nbPromo);
-
-        for (let i = 0; i < nbPromo; i++) {
-            await waitRandom(1500, 2500);
-            bar.update(i);
-            if (promotions[i]!.promotionType === "urlreward") {
-                await client.goto(promotions[i]!.destinationUrl);
-            } else if (promotions[i]!.promotionType === "quiz") {
-                // vérification de si le quiz est un sondage
-                if (promotions[i]!.title.includes("Sondage")) {
-                    await client.goto(promotions[i]!.destinationUrl);
-                    // vérification d'une demande de connexion en récupérant le bouton de connexion
-                    const login = await client.$(`a[target="_top"]`);
-                    console.log(login);
-                    if (login) {
-                        await client.click(`a[target="_top"]`);
-                        await wait(1000);
-                        await client.waitForSelector(`#i0118`);
-                        await client.type(`#i0118`, config.bing.password);
-                        await client.click(`#idSIButton9`);
-                        await wait(1000);
-                    }
-                    // reponse 1 ou 2 (aléatoire)
-                    const reponse = Math.floor(Math.random() * 2) + 1;
-                    await client.click(`#btoption${reponse}`);
-                }
-            }
-        }
-    }
-}
-
-/**
  * Welcome message
  */
-const showWelcomeMessage = () => {
+const showWelcomeMessage = (): void => {
     console.log(colors.green("Bienvenue sur ce scpript permettant de gagner des points Bing"));
     console.log(colors.green("Ce script est open source et disponible sur GitHub : https://github.com/Drosscend/MiscrosoftRewardBot"));
     console.log(colors.green("Vous pouvez me contacter sur discord si vous avez des questions ou des remarques Drosscend#6715"));
@@ -174,8 +194,9 @@ const showWelcomeMessage = () => {
 /**
  * Main function
  */
-const app = () => {
+const app = (): void => {
     showWelcomeMessage();
+
     puppeteer
         .use(StealthPlugin())
         .use(AdblockerPlugin({blockTrackers: true}))
@@ -187,6 +208,7 @@ const app = () => {
             }
         )
         .then(async browser => {
+            // set up page
             const page = await browser.newPage();
             await page.setViewport({width: 910, height: 1080});
             page.setDefaultNavigationTimeout(60000);
@@ -204,20 +226,20 @@ const app = () => {
             console.log(`Points avant l'utilisation du script : ${colors.cyan(String(pointBefore))}`);
 
             // DailySetPromotions
-            await dailySetPromotions(page, userInfo);
+            if (config.app.doDailySetPromotions) await dailySetPromotions(page, userInfo);
 
             // Promotions
-            await promoAction(page, userInfo);
+            if (config.app.doMorePromotions) await promoAction(page, userInfo);
 
             // Search
-            await searchAction(page, 100, userInfo);
-
-            await page.setUserAgent(config.userAgent.pc);
+            if (config.app.doDailySearch) await searchAction(page, config.app.nbBingSearch, userInfo);
 
             // Update user info
             userInfo = await getUserInfo(page);
             const pointAfter = await getPoints(userInfo);
+
             console.log(`Points après l'utilisation du script : ${colors.cyan(String(pointAfter))} | Gain : ${colors.green(String(pointAfter - pointBefore))}`);
+
             await browser.close();
             console.log("Fin du script");
         });

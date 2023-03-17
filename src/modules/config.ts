@@ -25,6 +25,12 @@ export const config = {
     userAgent: {
         pc: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.0.0',
         mobile: 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36 Edg/111.0.0.0',
+    },
+    app: {
+        doDailySetPromotions: true,
+        doMorePromotions: true,
+        doDailySearch: true,
+        nbBingSearch: 100,
     }
 }
 
