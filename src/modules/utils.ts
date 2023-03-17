@@ -8,7 +8,20 @@ import {Response} from "./Dashboard";
  * @param {number} ms - The amount of time to wait in milliseconds
  * @returns {Promise} - A promise that resolves after the given amount of time
  */
-export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const wait = (ms: number): Promise<void> => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Wait for a given amount of time between min and max
+ * @param {number} min - The minimum amount of time to wait in milliseconds
+ * @param {number} max - The maximum amount of time to wait in milliseconds
+ * @returns {Promise} - A promise that resolves after the given amount of time
+ */
+export const waitRandom = (min:number, max: number): Promise<void> => {
+    const random = Math.floor(Math.random() * (max - min + 1)) + min;
+    return new Promise((resolve) => setTimeout(resolve, random));
+}
 
 /**
  * Create a progress bar
@@ -34,8 +47,7 @@ export const progressBar = (title: string, total: number): Bar => {
  */
 export const Bingsearch = async (client: Page, query: string | undefined) => {
     await client.goto(`https://www.bing.com/search?q=${query}`);
-    const random = Math.floor(Math.random() * 6000) + 1000;
-    await wait(random);
+    await waitRandom(1000, 7000);
 };
 
 /**

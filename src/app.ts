@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import {getGoogleTrends} from "./modules/googleTrend.js";
-import {getPoints, getUserInfo, progressBar, Bingsearch, wait} from "./modules/utils.js";
+import {getPoints, getUserInfo, progressBar, Bingsearch, wait, waitRandom} from "./modules/utils.js";
 import {config} from "./modules/config.js";
 import {Page} from "puppeteer";
 import {Response} from "./modules/Dashboard.js";
@@ -42,6 +42,7 @@ const loginAction = async (client: Page) => {
         throw new Error("Erreur lors de la connexion à Bing");
     } else {
         console.log("Connexion à Bing réussie");
+        await wait(10000);
     }
 };
 
@@ -52,15 +53,20 @@ const loginAction = async (client: Page) => {
  */
 const promoAction = async (client: Page, userInfo: Response) => {
     const morePromotionsObject = userInfo.dashboard.morePromotions.filter(
-        (promo) => !promo.complete && promo.pointProgressMax > 0 && promo.isGiveEligible
+        (promo) => !promo.complete && promo.promotionType === "urlreward"
     );
     const nbPromo = morePromotionsObject.length;
+    if (nbPromo === 0) {
+        console.log(colors.yellow("Vous avez déjà gagné les points des promotions"));
+        return;
+    }
+
     const bar = progressBar("Ouverture des promotions", nbPromo);
 
     for (let i = 0; i < nbPromo; i++) {
         bar.update(i);
         await client.goto(morePromotionsObject[i]!.destinationUrl);
-        await wait(1000);
+        await waitRandom(2000, 3000);
     }
 
     bar.update(nbPromo);
@@ -72,29 +78,85 @@ const promoAction = async (client: Page, userInfo: Response) => {
  * @param client - The puppeteer client
  * @param nbTends - The number of trends to get
  */
-const searchAction = async (client: Page, nbTends: number) => {
-    const bar = progressBar("Recherche des tendances Google (PC et mobile)", nbTends);
+const searchAction = async (client: Page, nbTends: number, userInfo: Response) => {
+    // Vérification de la possibilité de gagner d'autres points
+    const pointsPC = userInfo.dashboard.userStatus.counters.pcSearch[0]?.complete
+    const pointsMobile = userInfo.dashboard.userStatus.counters.mobileSearch[0]?.complete
+    if (pointsPC && pointsMobile) {
+        console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur PC et mobile"));
+        return;
+    }
 
     const googleTrendTab = await getGoogleTrends(client, nbTends);
 
     if (googleTrendTab != null) {
-        const nbTrends = googleTrendTab.length;
-        bar.start(nbTrends * 2, 0);
-        await client.setUserAgent(config.userAgent.pc);
-        for (let i = 0; i < nbTrends; i++) {
-            bar.update(i);
-            await Bingsearch(client, googleTrendTab[i])
+        if (!pointsPC) {
+            const bar = progressBar("Recherche des tendances Google sur PC", nbTends);
+            await client.setUserAgent(config.userAgent.pc);
+            for (let i = 0; i < nbTends; i++) {
+                bar.update(i);
+                await Bingsearch(client, googleTrendTab[i])
+            }
+            bar.update(nbTends);
+            bar.stop();
         }
-
-        await client.setUserAgent(config.userAgent.mobile);
-        for (let i = 0; i < nbTrends; i++) {
-            bar.update(i + nbTrends);
-            await Bingsearch(client, googleTrendTab[i]);
+        if (!pointsMobile) {
+            const bar = progressBar("Recherche des tendances Google sur mobile", nbTends);
+            await client.setUserAgent(config.userAgent.mobile);
+            for (let i = 0; i < nbTends; i++) {
+                bar.update(i);
+                await Bingsearch(client, googleTrendTab[i]);
+            }
+            bar.update(nbTends);
+            bar.stop();
         }
-        bar.update(nbTrends * 2);
-        bar.stop();
     } else {
         console.log("Aucune tendance Google n'a été trouvée");
+    }
+}
+
+/**
+ * DailySetPromotions
+ */
+const dailySetPromotions = async (client: Page, userInfo: Response) => {
+    const today = new Date().toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'});
+    const dailySetPromotions = userInfo.dashboard.dailySetPromotions[today];
+    if (dailySetPromotions != null) {
+        const promotions = dailySetPromotions.filter((promo) => !promo.complete && promo.pointProgressMax > 0 && promo.isGiveEligible);
+        const nbPromo = promotions.length;
+        if (nbPromo === 0) {
+            console.log(colors.yellow("Vous avez déjà gagné les points quotidiens des promotions quotidiennes"));
+            return;
+        }
+
+        const bar = progressBar("Ouverture des promotions quotidiennes", nbPromo);
+
+        for (let i = 0; i < nbPromo; i++) {
+            await waitRandom(1500, 2500);
+            bar.update(i);
+            if (promotions[i]!.promotionType === "urlreward") {
+                await client.goto(promotions[i]!.destinationUrl);
+            } else if (promotions[i]!.promotionType === "quiz") {
+                // vérification de si le quiz est un sondage
+                if (promotions[i]!.title.includes("Sondage")) {
+                    await client.goto(promotions[i]!.destinationUrl);
+                    // vérification d'une demande de connexion en récupérant le bouton de connexion
+                    const login = await client.$(`a[target="_top"]`);
+                    console.log(login);
+                    if (login) {
+                        await client.click(`a[target="_top"]`);
+                        await wait(1000);
+                        await client.waitForSelector(`#i0118`);
+                        await client.type(`#i0118`, config.bing.password);
+                        await client.click(`#idSIButton9`);
+                        await wait(1000);
+                    }
+                    // reponse 1 ou 2 (aléatoire)
+                    const reponse = Math.floor(Math.random() * 2) + 1;
+                    await client.click(`#btoption${reponse}`);
+                }
+            }
+        }
     }
 }
 
@@ -115,8 +177,8 @@ const app = () => {
         .then(async browser => {
             const page = await browser.newPage();
             await page.setViewport({width: 910, height: 1080});
-            await page.setDefaultNavigationTimeout(60000);
-            await page.setDefaultTimeout(60000);
+            page.setDefaultNavigationTimeout(60000);
+            page.setDefaultTimeout(60000);
             await page.setUserAgent(config.userAgent.pc);
 
             //Login
@@ -129,9 +191,14 @@ const app = () => {
             const pointBefore = await getPoints(userInfo);
             console.log(`Points avant l'utilisation du script : ${colors.cyan(String(pointBefore))}`);
 
+            // DailySetPromotions
+            await dailySetPromotions(page, userInfo);
+
+            // Promotions
             await promoAction(page, userInfo);
 
-            await searchAction(page, 100);
+            // Search
+            await searchAction(page, 100, userInfo);
 
             await page.setUserAgent(config.userAgent.pc);
 
