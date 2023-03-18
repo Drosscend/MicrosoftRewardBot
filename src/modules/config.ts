@@ -1,5 +1,5 @@
-import {getEdgePath} from "edge-paths";
-import dotenv from "dotenv";
+import {getEdgePath} from 'edge-paths';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -13,9 +13,9 @@ export const config = {
         password: process.env['BING_PASSWORD'],
     },
     puppeteer: {
-        headless: true,
+        headless: false,
         executablePath: getEdgePath(),
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
     },
     gooogleTrends: {
         baseURL: 'https://trends.google.com',

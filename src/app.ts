@@ -1,51 +1,58 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
-import {getGoogleTrends} from "./modules/googleTrend.js";
-import {Bingsearch, getPoints, getUserInfo, progressBar, promoLogin, wait, waitRandom} from "./modules/utils.js";
-import {config} from "./modules/config.js";
-import {Page} from "puppeteer";
-import {Response} from "./modules/Dashboard.js";
-import colors from "ansi-colors";
+import {getGoogleTrends} from './modules/googleTrend.js';
+import {Bingsearch, getPoints, getUserInfo, progressBar, promoLogin, wait, waitRandom} from './modules/utils.js';
+import {config} from './modules/config.js';
+import {Page} from 'puppeteer';
+import {Response} from './modules/Dashboard.js';
+import colors from 'ansi-colors';
 
 /**
  * Login to Bing
- * @param client - The puppeteer client
+ * @param page - The puppeteer page
  * @returns {Promise<void>} - A promise that resolves after the login
  */
-const loginAction = async (client: Page): Promise<void> => {
-    console.log("Connexion à Bing");
+const loginAction = async (page: Page): Promise<void> => {
+    console.log('Connexion à Bing');
 
-    await client.goto('https://rewards.bing.com/');
+    await page.goto('https://rewards.bing.com/');
 
-    await client.waitForSelector(`input[name="loginfmt"]`);
-    await client.type(`input[name="loginfmt"]`, config.bing.username);
-    await client.click(`input[id="idSIButton9"]`);
+    await page.waitForSelector(`input[name='loginfmt']`);
+    await page.type(`input[name='loginfmt']`, config.bing.username);
+    await page.click(`input[id='idSIButton9']`);
     await wait(2000);
 
-    await client.waitForSelector(`input[name="passwd"]`);
-    await client.type(`input[name="passwd"]`, config.bing.password);
-    await client.click(`input[id="idSIButton9"]`);
+    await page.waitForSelector(`input[name='passwd']`);
+    await page.type(`input[name="passwd"]`, config.bing.password);
+    await page.click(`input[id="idSIButton9"]`);
     await wait(3000);
 
     // Vérification de l'authentification à 2 facteurs
-    const twoFactorAuth = await client.$(`input[name="otc"]`);
+    const twoFactorAuth = await page.$(`input[name="otc"]`);
     if (twoFactorAuth != null) {
-        await client.close();
+        await page.close();
         throw new Error("Le compte Bing possède une authentification à 2 facteurs, veuillez la désactiver");
     }
 
     // Vérification d'une popup pour rester connecté
-    const stayConnected = await client.$(`input[id="idSIButton9"]`);
+    const stayConnected = await page.$(`input[id="idSIButton9"]`);
     if (stayConnected != null) {
-        await client.click(`input[id="idSIButton9"]`);
+        await page.click(`input[id="idSIButton9"]`);
+        await wait(2000);
+    }
+
+    // Vérification de la présence d'un bandeau de cookies
+    const cookiesBannerDiv = await page.$(`div[id="cookieConsentContainer"]`);
+    if (cookiesBannerDiv != null) {
+        await page.click('#wcpConsentBannerCtrl button:nth-child(1)');
         await wait(2000);
     }
 
     // Vérification de la connexion
-    const pageTitle = await client.title();
+    const pageTitle = await page.title();
     if (pageTitle !== "Microsoft Rewards") {
-        await client.close();
+        await page.close();
         throw new Error("Erreur lors de la connexion à Bing");
     } else {
         console.log("Connexion à Bing réussie");
@@ -55,11 +62,11 @@ const loginAction = async (client: Page): Promise<void> => {
 
 /**
  * DailySetPromotions
- * @param client - The puppeteer client
+ * @param page - The puppeteer page
  * @param userInfo - The user info
  * @returns {Promise<void>} - A promise that resolves after the DailySetPromotions
  */
-const dailySetPromotions = async (client: Page, userInfo: Response): Promise<void> => {
+const dailySetPromotions = async (page: Page, userInfo: Response): Promise<void> => {
     const todayDate = new Date().toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'});
     const dailySetPromotions = userInfo.dashboard.dailySetPromotions[todayDate];
 
@@ -80,38 +87,38 @@ const dailySetPromotions = async (client: Page, userInfo: Response): Promise<voi
 
             // Si le type de la promotion est une simple url
             if (promotions[i]!.promotionType === "urlreward") {
-                await client.goto(promotions[i]!.destinationUrl);
+                await page.goto(promotions[i]!.destinationUrl);
             } else if (promotions[i]!.promotionType === "quiz") {
-                await client.goto(promotions[i]!.destinationUrl);
+                await page.goto(promotions[i]!.destinationUrl);
                 // vérification de si le quiz est un sondage
                 if (promotions[i]!.title.includes("Sondage")) {
                     // vérification d'une possible demande de connexion
-                    const login = await client.$(`a[target="_top"]`);
+                    const login = await page.$(`a[target="_top"]`);
                     if (login) {
-                        await promoLogin(client);
+                        await promoLogin(page);
                     }
 
                     // reponse 0 ou 1 (aléatoire)
                     const reponse = ["btoption0", "btoption1"][Math.floor(Math.random() * 2)];
-                    await client.click(`#btoption${reponse}`);
+                    await page.click(`#btoption${reponse}`);
                 } else if (promotions[i]!.title.includes("Quiz")) {
                     // vérification d'une possible demande de connexion
-                    const login = await client.$(`a[target="_top"]`);
+                    const login = await page.$(`a[target="_top"]`);
                     if (login) {
-                        await promoLogin(client);
+                        await promoLogin(page);
                     }
 
                     // Tant que le quiz n'est pas fini TODO
-                    while (await client.$(`div[id="quizCompleteContainer"]`) == null) {
+                    while (await page.$(`div[id="quizCompleteContainer"]`) == null) {
                         //Tant que les rqMCredits ne sont pas chargés
-                        let rqMCreditsBefore = await client.$(`div[id="rqMCredits"]`);
-                        let rqMCreditsAfter = await client.$(`div[id="rqMCredits"]`);
+                        let rqMCreditsBefore = await page.$(`div[id="rqMCredits"]`);
+                        let rqMCreditsAfter = await page.$(`div[id="rqMCredits"]`);
 
                         while (rqMCreditsBefore == rqMCreditsAfter) {
                             for (let i = 1; i < 8; i++) {
-                                await client.click(`div[id="rqM${i}"]`);
+                                await page.click(`div[id="rqM${i}"]`);
                                 await waitRandom(1000, 2000);
-                                rqMCreditsAfter = await client.$(`div[id="rqMCredits"]`);
+                                rqMCreditsAfter = await page.$(`div[id="rqMCredits"]`);
                                 if (rqMCreditsBefore != rqMCreditsAfter) {
                                     break;
                                 }
@@ -128,11 +135,11 @@ const dailySetPromotions = async (client: Page, userInfo: Response): Promise<voi
 
 /**
  * Open promotions links
- * @param client - The puppeteer client
+ * @param page - The puppeteer page
  * @param userInfo - The user info
  * @returns {Promise<void>} - A promise that resolves after the promotions links opening
  */
-const promoAction = async (client: Page, userInfo: Response): Promise<void> => {
+const promoAction = async (page: Page, userInfo: Response): Promise<void> => {
     const morePromotionsObject = userInfo.dashboard.morePromotions.filter(
         (promo) => !promo.complete && promo.promotionType === "urlreward" && promo.pointProgressMax > 0
     );
@@ -148,7 +155,7 @@ const promoAction = async (client: Page, userInfo: Response): Promise<void> => {
 
     for (let i = 0; i < nbPromo; i++) {
         bar.update(i);
-        await client.goto(morePromotionsObject[i]!.destinationUrl);
+        await page.goto(morePromotionsObject[i]!.destinationUrl);
         await waitRandom(2000, 3000);
     }
 
@@ -158,12 +165,12 @@ const promoAction = async (client: Page, userInfo: Response): Promise<void> => {
 
 /**
  * Get Google Trend and make research on Bing on PC and mobile agent
- * @param client - The puppeteer client
+ * @param page - The puppeteer page
  * @param nbTends - The number of trends to get
  * @param userInfo - The user info
  * @returns {Promise<void>} - A promise that resolves after the research
  */
-const searchAction = async (client: Page, nbTends: number, userInfo: Response): Promise<void> => {
+const searchAction = async (page: Page, nbTends: number, userInfo: Response): Promise<void> => {
     // Vérification de la possibilité de gagner d'autres points
     // TODO améliorable : récupération despts actuels, puis des points max, récupération des points gagnables par recherche
     const pointsPC = userInfo.dashboard.userStatus.counters.pcSearch[0]?.complete
@@ -173,16 +180,16 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response): 
         return;
     }
 
-    const googleTrendTab = await getGoogleTrends(client, nbTends);
+    const googleTrendTab = await getGoogleTrends(page, nbTends);
 
     if (googleTrendTab != null) {
         if (!pointsPC) {
             const bar = progressBar("Recherche des tendances Google sur PC", nbTends);
 
-            await client.setUserAgent(config.userAgent.pc);
+            await page.setUserAgent(config.userAgent.pc);
             for (let i = 0; i < nbTends; i++) {
                 bar.update(i);
-                await Bingsearch(client, googleTrendTab[i])
+                await Bingsearch(page, googleTrendTab[i])
             }
 
             bar.update(nbTends);
@@ -194,10 +201,10 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response): 
         if (!pointsMobile) {
             const bar = progressBar("Recherche des tendances Google sur mobile", nbTends);
 
-            await client.setUserAgent(config.userAgent.mobile);
+            await page.setUserAgent(config.userAgent.mobile);
             for (let i = 0; i < nbTends; i++) {
                 bar.update(i);
-                await Bingsearch(client, googleTrendTab[i]);
+                await Bingsearch(page, googleTrendTab[i]);
             }
 
             bar.update(nbTends);
@@ -206,7 +213,7 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response): 
             console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur mobile"));
         }
 
-        await client.setUserAgent(config.userAgent.pc);
+        await page.setUserAgent(config.userAgent.pc);
     } else {
         console.log("Aucune tendance Google n'a été trouvée");
     }
@@ -233,10 +240,8 @@ const showWelcomeMessage = (): void => {
     console.log("--------------------------------------------");
 }
 
-/**
- * Main function
- */
-const app = (): void => {
+
+(async () => {
     showWelcomeMessage();
 
     puppeteer
@@ -259,16 +264,19 @@ const app = (): void => {
 
             //Login
             let nbTry = 0;
-            try {
+            const maxTries = 3;
+            while (nbTry < maxTries) {
                 nbTry++;
-                await loginAction(page);
-            } catch (e) {
-                console.log(colors.red("Une erreur est survenue lors de la connexion, nous allons réessayer"));
-                if (nbTry < 3) {
-                    await app();
-                } else {
-                    console.log(colors.red("Impossible de se connecter, il est possible que l'erreur vienne de nous ou alors de votre compte"));
-                    process.exit(1);
+                try {
+                    await loginAction(page);
+                    break; // Sort de la boucle si la connexion est réussie
+                } catch (e) {
+                    console.log(colors.red(`Une erreur est survenue lors de la connexion, nous allons réessayer : ${nbTry}/${maxTries}`));
+                    if (nbTry === maxTries) {
+                        console.log(colors.red("Impossible de se connecter, il est possible que l'erreur vienne de nous ou alors de votre compte"));
+                        process.exit(1);
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, 5000)); // Attendre avant la prochaine tentative
                 }
             }
 
@@ -297,6 +305,4 @@ const app = (): void => {
             await browser.close();
             console.log("Fin du script");
         });
-}
-
-app();
+})();

@@ -1,6 +1,6 @@
-import {Page} from "puppeteer";
-import {progressBar, wait} from "./utils.js";
-import {config} from "./config.js";
+import {Page} from 'puppeteer';
+import {progressBar, wait} from './utils.js';
+import {config} from './config.js';
 
 const baseURL = config.gooogleTrends.baseURL;
 const countryCode = config.gooogleTrends.countryCode;
@@ -16,9 +16,9 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
     const URL = `${baseURL}/trends/trendingsearches/realtime?geo=${countryCode}&category=${category}&hl=fr`;
 
     await page.goto(URL);
-    await page.waitForSelector(".feed-item");
+    await page.waitForSelector('.feed-item');
 
-    const bar = progressBar("Récupération des tendances Google", nbTrends);
+    const bar = progressBar('Récupération des tendances Google', nbTrends);
     const maxTrends = nbTrends;
     let trends: string[] = [];
 
@@ -29,13 +29,13 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
         // Récupérer les tendances actuelles
         const currentTrends = await page.evaluate(() => {
             const trends: string[] = [];
-            const trendItems = document.querySelectorAll(".feed-item");
+            const trendItems = document.querySelectorAll('.feed-item');
             trendItems.forEach((item) => {
-                const title = item.querySelector(".title");
+                const title = item.querySelector('.title');
                 if (title) {
                     const query = title.textContent
-                        ?.replace(/[^a-zA-Z0-9\s]/g, "")
-                        .replace(/\s+/g, " ")
+                        ?.replace(/[^a-zA-Z0-9\s]/g, '')
+                        .replace(/\s+/g, ' ')
                         .trim();
                     if (query && query.length > 0) {
                         trends.push(query);
@@ -55,11 +55,11 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
         });
 
         // Vérifier s'il reste des tendances à charger
-        const isNextPage = await page.$(".feed-load-more-button");
+        const isNextPage = await page.$('.feed-load-more-button');
         if (!isNextPage) break;
 
         // Charger plus de tendances
-        await page.click(".feed-load-more-button");
+        await page.click('.feed-load-more-button');
     }
     bar.update(maxTrends);
     bar.stop();

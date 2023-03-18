@@ -1,8 +1,8 @@
-import {Bar} from "cli-progress";
-import colors from "ansi-colors";
-import {Page} from "puppeteer";
-import {Response} from "./Dashboard.js";
-import {config} from "./config.js";
+import {Bar} from 'cli-progress';
+import colors from 'ansi-colors';
+import {Page} from 'puppeteer';
+import {Response} from './Dashboard.js';
+import {config} from './config.js';
 
 /**
  * Wait for a given amount of time
@@ -84,7 +84,7 @@ export const getPoints = async (userInfo: Response) => {
  * @returns {Promise<void>} - A promise that resolves after the login
  */
 export const promoLogin = async (client: Page): Promise<void> => {
-    await client.click(`a[target="_top"]`);
+    await client.click(`a[target='_top']`);
     await wait(1000);
     await client.waitForSelector(`#i0118`);
     await client.type(`#i0118`, config.bing.password);

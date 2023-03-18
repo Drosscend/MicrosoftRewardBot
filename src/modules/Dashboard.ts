@@ -191,24 +191,24 @@ export interface DailySetPromotionAttributes {
     offerid: string;
     give_eligible: GiveEligible;
     parentPunchcards?: string;
-    "classification.MatchCriteria"?: string;
-    "classification.Products"?: string;
+    'classification.MatchCriteria'?: string;
+    'classification.Products'?: string;
 }
 
 export enum GiveEligible {
-    False = "False",
-    True = "True",
+    False = 'False',
+    True = 'True',
 }
 
 export enum State {
-    Complete = "Complete",
-    Default = "Default",
+    Complete = 'Complete',
+    Default = 'Default',
 }
 
 export enum Type {
-    Appstore = "appstore",
-    Quiz = "quiz",
-    Urlreward = "urlreward",
+    Appstore = 'appstore',
+    Quiz = 'quiz',
+    Urlreward = 'urlreward',
 }
 
 export interface DashboardFlights {
@@ -296,15 +296,15 @@ export interface MorePromotionAttributes {
 }
 
 export enum Title {
-    Collecte = "Collecte",
-    Empty = "",
-    Objectif = "Objectif",
+    Collecte = 'Collecte',
+    Empty = '',
+    Objectif = 'Objectif',
 }
 
 export enum PromotionType {
-    Empty = "",
-    Quiz = "quiz",
-    Urlreward = "urlreward",
+    Empty = '',
+    Quiz = 'quiz',
+    Urlreward = 'urlreward',
 }
 
 export interface PunchCard {
@@ -377,11 +377,11 @@ export interface ParentPromotionAttributes {
     progress: string;
     complete: GiveEligible;
     offerid: string;
-    "classification.PunchcardEndDate": Date;
-    "classification.Template": string;
-    "classification.TitleText": string;
-    "classification.DescriptionText": string;
-    "classification.PunchcardChildrenCount": string;
+    'classification.PunchcardEndDate': Date;
+    'classification.Template': string;
+    'classification.TitleText': string;
+    'classification.DescriptionText': string;
+    'classification.PunchcardChildrenCount': string;
     give_eligible: GiveEligible;
     points_total?: string;
 }
@@ -640,7 +640,7 @@ export interface ActivityAndQuizAttributes {
     image: string;
     recurring: string;
     destination: string;
-    "classification.ShowProgress": GiveEligible;
+    'classification.ShowProgress': GiveEligible;
     hidden: GiveEligible;
     give_eligible: GiveEligible;
 }
