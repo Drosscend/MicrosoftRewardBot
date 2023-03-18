@@ -48,7 +48,7 @@ export const progressBar = (title: string, total: number): Bar => {
  */
 export const Bingsearch = async (client: Page, query: string | undefined) => {
     await client.goto(`https://www.bing.com/search?q=${query}`);
-    await waitRandom(1000, 7000);
+    await waitRandom(2500, 6000);
 };
 
 /**

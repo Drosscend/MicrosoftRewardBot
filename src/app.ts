@@ -75,7 +75,7 @@ const dailySetPromotions = async (client: Page, userInfo: Response): Promise<voi
         const bar = progressBar("Ouverture des promotions quotidiennes", nbPromo);
 
         for (let i = 0; i < nbPromo; i++) {
-            await waitRandom(1500, 2500);
+            await waitRandom(4000, 6000);
             bar.update(i);
 
             // Si le type de la promotion est une simple url
@@ -121,6 +121,8 @@ const dailySetPromotions = async (client: Page, userInfo: Response): Promise<voi
                 }
             }
         }
+        bar.update(nbPromo);
+        bar.stop();
     }
 }
 
@@ -163,6 +165,7 @@ const promoAction = async (client: Page, userInfo: Response): Promise<void> => {
  */
 const searchAction = async (client: Page, nbTends: number, userInfo: Response): Promise<void> => {
     // Vérification de la possibilité de gagner d'autres points
+    // TODO améliorable : récupération despts actuels, puis des points max, récupération des points gagnables par recherche
     const pointsPC = userInfo.dashboard.userStatus.counters.pcSearch[0]?.complete
     const pointsMobile = userInfo.dashboard.userStatus.counters.mobileSearch ? userInfo.dashboard.userStatus.counters.mobileSearch[0]?.complete : false;
     if (pointsPC && pointsMobile) {
@@ -184,6 +187,8 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response): 
 
             bar.update(nbTends);
             bar.stop();
+        } else {
+            console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur PC"));
         }
 
         if (!pointsMobile) {
@@ -197,6 +202,8 @@ const searchAction = async (client: Page, nbTends: number, userInfo: Response): 
 
             bar.update(nbTends);
             bar.stop();
+        } else {
+            console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur mobile"));
         }
 
         await client.setUserAgent(config.userAgent.pc);
@@ -251,7 +258,19 @@ const app = (): void => {
             await page.setUserAgent(config.userAgent.pc);
 
             //Login
-            await loginAction(page);
+            let nbTry = 0;
+            try {
+                nbTry++;
+                await loginAction(page);
+            } catch (e) {
+                console.log(colors.red("Une erreur est survenue lors de la connexion, nous allons réessayer"));
+                if (nbTry < 3) {
+                    await app();
+                } else {
+                    console.log(colors.red("Impossible de se connecter, il est possible que l'erreur vienne de nous ou alors de votre compte"));
+                    process.exit(1);
+                }
+            }
 
             // Get user info
             let userInfo = await getUserInfo(page);
@@ -280,13 +299,4 @@ const app = (): void => {
         });
 }
 
-try {
-    app();
-} catch (e) {
-    if (config.puppeteer.headless) {
-        console.log(colors.red("Une erreur est survenue, veuillez lancer le script en mode non headless pour plus d'informations"));
-    } else {
-        console.log(colors.red("Une erreur est survenue :"));
-    }
-    console.log(e);
-}
+app();
