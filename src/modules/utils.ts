@@ -1,7 +1,7 @@
 import {Bar} from 'cli-progress';
 import colors from 'ansi-colors';
 import {Page} from 'puppeteer';
-import {Response} from './Dashboard.js';
+import {apiResponse} from './Dashboard.js';
 import {config} from './config.js';
 
 /**
@@ -43,21 +43,21 @@ export const progressBar = (title: string, total: number): Bar => {
 
 /**
  * Make research on Bing
- * @param client - The puppeteer client
+ * @param page - The puppeteer client
  * @param {string} query - The query to search
  */
-export const Bingsearch = async (client: Page, query: string | undefined) => {
-    await client.goto(`https://www.bing.com/search?q=${query}`);
+export const Bingsearch = async (page: Page, query: string | undefined) => {
+    await page.goto(`https://www.bing.com/search?q=${query}`);
     await waitRandom(2500, 6000);
 };
 
 /**
  * Get user info
- * @param client - The puppeteer client
- * @returns {Promise<Response>} - A promise that resolves after the login
+ * @param page - The puppeteer client
+ * @returns {Promise<apiResponse>} - A promise that resolves after the login
  */
-export const getUserInfo = async (client: Page): Promise<Response> => {
-    const response = await client.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
+export const getUserInfo = async (page: Page): Promise<apiResponse> => {
+    const response = await page.goto('https://rewards.bing.com/api/getuserinfo?type=1&X-Requested-With=XMLHttpRequest');
 
     if (response) {
         if (!response.ok()) {
@@ -74,20 +74,36 @@ export const getUserInfo = async (client: Page): Promise<Response> => {
  * Get points
  * @param userInfo - The user info
  */
-export const getPoints = async (userInfo: Response) => {
+export const getPoints = async (userInfo: apiResponse) => {
     return userInfo.dashboard.userStatus.availablePoints
 }
 
 /**
  * Login to Bing
- * @param client - The puppeteer client
+ * @param page - The puppeteer client
  * @returns {Promise<void>} - A promise that resolves after the login
  */
-export const promoLogin = async (client: Page): Promise<void> => {
-    await client.click(`a[target='_top']`);
-    await wait(1000);
-    await client.waitForSelector(`#i0118`);
-    await client.type(`#i0118`, config.bing.password);
-    await client.click(`#idSIButton9`);
-    await wait(1000);
+export const promoLogin = async (page: Page): Promise<void> => {
+    const login = await page.$(`a[target="_top"]`);
+    if (login) {
+        await page.click(`a[target='_top']`);
+        await wait(1000);
+        await page.waitForSelector(`#i0118`);
+        await page.type(`#i0118`, config.bing.password);
+        await page.click(`#idSIButton9`);
+        await wait(1000);
+    }
+}
+
+/**
+ * Accept cookies
+ * @param page - The puppeteer page
+ */
+export const acceptCookies = async (page: Page): Promise<void> => {
+    // Vérification de la présence d'une popup de cookies
+    const cookiesBannerDiv = await page.$(`div[id="bnp_cookie_banner"]`);
+    if (cookiesBannerDiv != null) {
+        await page.click(`#bnp_btn_accept`);
+        await wait(2000);
+    }
 }
