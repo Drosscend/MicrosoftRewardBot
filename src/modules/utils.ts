@@ -49,7 +49,7 @@ export const progressBar = (title: string, total: number): Bar => {
  */
 export const Bingsearch = async (page: Page, query: string | undefined): Promise<void> => {
     await page.goto(`https://www.bing.com/search?q=${query}`);
-    await waitRandom(2500, 6000);
+    await waitRandom(4000, 6000);
 };
 
 /**
@@ -108,4 +108,10 @@ export const acceptCookies = async (page: Page): Promise<void> => {
         await page.click(`#bnp_btn_accept`);
         await wait(2000);
     }
+}
+
+export const checkIfLoggedIn = async (page: Page): Promise<boolean> => {
+    const rewardsDashboard = await page.$(`div[id="rewards-dashboard"]`)
+    return !!rewardsDashboard;
+
 }

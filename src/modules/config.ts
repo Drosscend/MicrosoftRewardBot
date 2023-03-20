@@ -29,7 +29,7 @@ export const config = {
     },
     app: {
         nbPtsPerSearch: 3,
-        doDailySetPromotions: true,
+        doDailySetPromotions: false,
         doMorePromotions: true,
         doDailySearch: true,
     }
