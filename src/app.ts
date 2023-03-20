@@ -61,14 +61,14 @@ const loginAction = async (page: Page): Promise<void> => {
     }
 
     // Checking the connection
-    // isLoggedIn = await checkIfLoggedIn(page);
-    // if (!isLoggedIn) {
-    //     await page.close();
-    //     throw new Error("Bing login failed");
-    // } else {
-    //     console.log("Bing login successful");
-    //     await wait(10000);
-    // }
+    const pageTitle = await page.title();
+    if (pageTitle !== "Microsoft Rewards") {
+        await page.close();
+        throw new Error("Bing login failed");
+    } else {
+        console.log("Bing login successful");
+        await wait(10000);
+    }
 };
 
 /**

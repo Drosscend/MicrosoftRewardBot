@@ -109,9 +109,3 @@ export const acceptCookies = async (page: Page): Promise<void> => {
         await wait(2000);
     }
 }
-
-export const checkIfLoggedIn = async (page: Page): Promise<boolean> => {
-    const rewardsDashboard = await page.$(`div[id="rewards-dashboard"]`)
-    return !!rewardsDashboard;
-
-}
