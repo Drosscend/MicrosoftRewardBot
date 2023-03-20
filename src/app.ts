@@ -23,7 +23,7 @@ import colors from 'ansi-colors';
  * @returns {Promise<void>} - A promise that resolves after the login
  */
 const loginAction = async (page: Page): Promise<void> => {
-    console.log('Connexion à Bing');
+    console.log("Login to Bing...");
 
     await page.goto('https://rewards.bing.com/');
 
@@ -37,34 +37,34 @@ const loginAction = async (page: Page): Promise<void> => {
     await page.click(`input[id="idSIButton9"]`);
     await wait(3000);
 
-    // Vérification de l'authentification à 2 facteurs
+    // 2-factor authentication verification
     const twoFactorAuth = await page.$(`input[name="otc"]`);
     if (twoFactorAuth != null) {
         await page.close();
-        throw new Error("Le compte Bing possède une authentification à 2 facteurs, veuillez la désactiver");
+        throw new Error("Bing account has 2-factor authentication, please disable it");
     }
 
-    // Vérification d'une popup pour rester connecté
+    // Checking a popup to stay connected
     const stayConnected = await page.$(`input[id="idSIButton9"]`);
     if (stayConnected != null) {
         await page.click(`input[id="idSIButton9"]`);
         await wait(2000);
     }
 
-    // Vérification de la présence d'un bandeau de cookies
+    // Checking for the presence of a cookie banner
     const cookiesBannerDiv = await page.$(`div[id="cookieConsentContainer"]`);
     if (cookiesBannerDiv != null) {
         await page.click('#wcpConsentBannerCtrl button:nth-child(1)');
         await wait(2000);
     }
 
-    // Vérification de la connexion
+    // Checking the connection
     const pageTitle = await page.title();
     if (pageTitle !== "Microsoft Rewards") {
         await page.close();
-        throw new Error("Erreur lors de la connexion à Bing");
+        throw new Error("Bing login failed");
     } else {
-        console.log("Connexion à Bing réussie");
+        console.log("Bing login successful");
         await wait(10000);
     }
 };
@@ -80,43 +80,46 @@ const  dailySetPromotions = async (page: Page, userInfo: apiResponse): Promise<v
     const dailySetPromotions = userInfo.dashboard.dailySetPromotions[todayDate];
 
     if (dailySetPromotions == null) {
-        console.log(colors.red("Aucune promotion quotidienne n'est disponible"));
+        console.log(colors.red("No dailySetPromotions found"));
         return;
     }
 
     const promotions = dailySetPromotions.filter((promo) => !promo.complete && promo.pointProgressMax > 0 && promo.isGiveEligible);
     const nbPromo = promotions.length;
     if (nbPromo === 0) {
-        console.log(colors.yellow("Vous avez déjà gagné les points quotidiens des promotions quotidiennes"));
+        console.log(colors.yellow("You have already completed all the dailySetPromotions"));
         return;
     }
 
-    const bar = progressBar("Ouverture des promotions quotidiennes", nbPromo);
+    const bar = progressBar("Opening dailySetPromotions", nbPromo);
 
     for (let i = 0; i < nbPromo; i++) {
         bar.update(i);
         await page.goto(promotions[i]!.destinationUrl);
 
-        // Vérification de la présence d'une popup de cookies
+        // Checking for a cookie popup
         await acceptCookies(page);
 
-        // vérification d'une possible demande de connexion
+        // Checking for a possible connection request
         await promoLogin(page);
 
         switch (promotions[i]!.promotionType) {
-            // Si le type de la promotion est une simple url
+            // If the promotion type is a search, do nothing
             case "urlreward":
                 break;
 
-            // Si le type de la promotion est un quiz
+            // If the promotion type is a quiz, check if it's a poll or a quiz
             case "quiz":
-                // vérification de si le quiz est un sondage
-                if (promotions[i]!.title.includes("Sondage")) {
-                    // reponse 0 ou 1 (aléatoire)
+                // check if the quiz is a survey
+                if (promotions[i]!.pointProgressMax === 10) {
+                    // answer 0 or 1 (random)
                     const reponse = ["btoption0", "btoption1"][Math.floor(Math.random() * 2)];
-                    await page.click(`#btoption${reponse}`);
-                } else if (promotions[i]!.title.includes("Quiz")) {
-                    // Tant que le quiz n'est pas fini TODO
+                    await page.click(`#${reponse}`);
+                }
+
+                else if (promotions[i]!.pointProgressMax === 30) {
+                    // TODO
+                    // As long as the quiz is not finished
                     while (await page.$(`div[id="quizCompleteContainer"]`) == null) {
                         //Tant que les rqMCredits ne sont pas chargés
                         let rqMCreditsBefore = await page.$(`div[id="rqMCredits"]`);
@@ -133,6 +136,10 @@ const  dailySetPromotions = async (page: Page, userInfo: apiResponse): Promise<v
                             }
                         }
                     }
+                }
+
+                else if (promotions[i]!.pointProgressMax === 50) {
+                    break;
                 }
             break;
         }
@@ -156,11 +163,11 @@ const promoAction = async (page: Page, userInfo: apiResponse): Promise<void> => 
     const nbPromo = morePromotionsObject.length;
 
     if (nbPromo === 0) {
-        console.log(colors.yellow("Vous avez déjà gagné les points des promotions"));
+        console.log(colors.yellow("You have already completed all the promotions"));
         return;
     }
 
-    const bar = progressBar("Ouverture des promotions", nbPromo);
+    const bar = progressBar("Opening promotions", nbPromo);
 
     for (let i = 0; i < nbPromo; i++) {
         bar.update(i);
@@ -179,72 +186,72 @@ const promoAction = async (page: Page, userInfo: apiResponse): Promise<void> => 
  * @returns {Promise<void>} - A promise that resolves after the research
  */
 const searchAction = async (page: Page, userInfo: apiResponse): Promise<void> => {
-    // Vérification de la possibilité de gagner d'autres points
-    const pointsPC = userInfo.dashboard.userStatus.counters.pcSearch[0]?.complete
-    const pointsMobile = userInfo.dashboard.userStatus.counters.mobileSearch ? userInfo.dashboard.userStatus.counters.mobileSearch[0]?.complete : false;
-    if (pointsPC && pointsMobile) {
-        console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur PC et mobile"));
+    // Check if the user has already completed the daily search
+    const desktopSearchPoints = userInfo.dashboard.userStatus.counters.pcSearch[0]?.complete
+    const mobileSearchPoints = userInfo.dashboard.userStatus.counters.mobileSearch ? userInfo.dashboard.userStatus.counters.mobileSearch[0]?.complete : false;
+    if (desktopSearchPoints && mobileSearchPoints) {
+        console.log(colors.yellow("You have already completed the daily search (PC and mobile)"));
         return;
     }
 
-    const googleTrendTab = await getGoogleTrends(page, config.gooogleTrends.nbBingSearch);
+    const googleTrendArrayOfQuery = await getGoogleTrends(page, config.gooogleTrends.nbBingSearch);
 
-    if (googleTrendTab != null) {
-        if (!pointsPC) {
-            // Calcul points restant à gagné : points max - points actuels
+    if (googleTrendArrayOfQuery != null) {
+        if (!desktopSearchPoints) {
+            // Calcul of the number of points to get
             const pointProgressMax = userInfo.dashboard.userStatus.counters.pcSearch[0]?.pointProgressMax!
             const pointProgress = userInfo.dashboard.userStatus.counters.pcSearch[0]?.pointProgress!
-            const pointsRestants = pointProgressMax - pointProgress;
+            const pointsRemaining = pointProgressMax - pointProgress;
 
-            // Calcul du nombre de recherche à faire : pointsRestants / points gagnables par recherche
-            const PCnbTends = Math.floor(pointsRestants / config.app.nbPtsPerSearch);
+            // Calculation of the number of searches to be done: pointsRemaining / points earned per search
+            const PCnbTends = Math.floor(pointsRemaining / config.app.nbPtsPerSearch);
 
-            const bar = progressBar("Recherche des tendances Google sur PC", PCnbTends);
+            const bar = progressBar("Bing search on PC", PCnbTends);
 
-            // Réduction du tableau de recherche si le nombre de recherche est supérieur au nombre de tendances
-            googleTrendTab.slice(0, PCnbTends)
+            // Reduction of the search table
+            googleTrendArrayOfQuery.slice(0, PCnbTends)
 
             await page.setUserAgent(config.userAgent.pc);
             for (let i = 0; i < PCnbTends; i++) {
                 bar.update(i);
-                await Bingsearch(page, googleTrendTab[i])
+                await Bingsearch(page, googleTrendArrayOfQuery[i])
             }
 
             bar.update(PCnbTends);
             bar.stop();
         } else {
-            console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur PC"));
+            console.log(colors.yellow("You have already completed the daily search (PC)"));
         }
 
-        if (!pointsMobile) {
-            // Calcul points restant à gagné : points max - points actuels
+        if (!mobileSearchPoints) {
+            // Calcul of the number of points to get
             const pointProgressMax = userInfo.dashboard.userStatus.counters.mobileSearch[0]?.pointProgressMax!
             const pointProgress = userInfo.dashboard.userStatus.counters.mobileSearch[0]?.pointProgress!
-            const pointsRestants = pointProgressMax - pointProgress;
+            const pointsRemaining = pointProgressMax - pointProgress;
 
-            // Calcul du nombre de recherche à faire : pointsRestants / points gagnables par recherche
-            const MobilenbTends = Math.floor(pointsRestants / config.app.nbPtsPerSearch);
+            // Calculation of the number of searches to be done: pointsRemaining / points earned per search
+            const MobilenbTends = Math.floor(pointsRemaining / config.app.nbPtsPerSearch);
 
-            const bar = progressBar("Recherche des tendances Google sur mobile", MobilenbTends);
+            const bar = progressBar("Bing search on mobile", MobilenbTends);
 
-            // Réduction du tableau de recherche si le nombre de recherche est supérieur au nombre de tendances
-            googleTrendTab.slice(0, MobilenbTends)
+            // Reduction of the search table
+            googleTrendArrayOfQuery.slice(0, MobilenbTends)
 
             await page.setUserAgent(config.userAgent.mobile);
             for (let i = 0; i < MobilenbTends; i++) {
                 bar.update(i);
-                await Bingsearch(page, googleTrendTab[i]);
+                await Bingsearch(page, googleTrendArrayOfQuery[i]);
             }
 
             bar.update(MobilenbTends);
             bar.stop();
         } else {
-            console.log(colors.yellow("Vous avez déjà gagné les points quotidiens de recherche Bing sur mobile"));
+            console.log(colors.yellow("You have already completed the daily search (mobile)"));
         }
 
         await page.setUserAgent(config.userAgent.pc);
     } else {
-        console.log("Aucune tendance Google n'a été trouvée");
+        console.log("Error: Google Trend is not available");
     }
 }
 
@@ -252,20 +259,20 @@ const searchAction = async (page: Page, userInfo: apiResponse): Promise<void> =>
  * Welcome message
  */
 const showWelcomeMessage = (): void => {
-    console.log(colors.white("Bienvenue sur ce scpript permettant de gagner des points Bing"));
-    console.log(colors.white("Ce script est open source et disponible sur GitHub : https://github.com/Drosscend/MicrosoftRewardBot"));
-    console.log(colors.white("Vous pouvez me contacter sur discord si vous avez des questions ou des remarques Drosscend#6715"));
-    console.log(colors.white("J'ai réalisé ce script pour mettre en pratiques mes connaissances en TypeScript et pour m'amuser"));
-    console.log(colors.red("Ce script est à utiliser à vos risques et périls"));
+    console.log(colors.white("Welcome to this scpript to earn Bing points"));
+    console.log(colors.white("This script is open source and available on GitHub : https://github.com/Drosscend/MicrosoftRewardBot"));
+    console.log(colors.white("You can contact me on discord if you have any questions or remarks Drosscend#6715"));
+    console.log(colors.white("I made this script to practice my TypeScript knowledge and to have fun"));
+    console.log(colors.red("This script is to be used at your own risk"));
     console.log("--------------------------------------------");
-    // Affichage de la configuration
+    // Display of the configuration
     console.log(colors.white("Configuration :"));
-    console.log(colors.white(`- Utilisateur : ${colors.green(config.bing.username)}`));
-    console.log(colors.white(`- Mode headless : ${config.puppeteer.headless ? colors.green("Actif") : colors.red("Inactif")}`));
-    console.log(colors.white(`- Nombre de tendances Google à rechercher : ${colors.green(config.gooogleTrends.nbBingSearch.toString())}`));
-    console.log(colors.white(`- Réalisation des promotions du jour : ${config.app.doDailySetPromotions ? colors.green("Actif") : colors.red("Inactif")}`));
-    console.log(colors.white(`- Réalisation des promotions supplémentaires : ${config.app.doDailySetPromotions ? colors.green("Actif") : colors.red("Inactif")}`));
-    console.log(colors.white(`- Réalisation des recherches Bing : ${config.app.doDailySetPromotions ? colors.green("Actif") : colors.red("Inactif")}`));
+    console.log(colors.white(`- User : ${colors.green(config.bing.username)}`));
+    console.log(colors.white(`- Headless mode : ${config.puppeteer.headless ? colors.green("Active") : colors.red("Inactive")}`));
+    console.log(colors.white(`- Number of Google trends to search : ${colors.green(config.gooogleTrends.nbBingSearch.toString())}`));
+    console.log(colors.white(`- Realization of the day's promotions : ${config.app.doDailySetPromotions ? colors.green("Active") : colors.red("Inactive")}`));
+    console.log(colors.white(`- Realization of additional promotions : ${config.app.doDailySetPromotions ? colors.green("Active") : colors.red("Inactive")}`));
+    console.log(colors.white(`- Performing Bing searches : ${config.app.doDailySetPromotions ? colors.green("Active") : colors.red("Inactive")}`));
     console.log("--------------------------------------------");
 }
 
@@ -284,28 +291,28 @@ const showWelcomeMessage = (): void => {
             }
         )
         .then(async browser => {
-            // set up page
+            // Set up browser and page.
             const page = await browser.newPage();
             await page.setViewport({width: 910, height: 1080});
             page.setDefaultNavigationTimeout(60000);
             page.setDefaultTimeout(60000);
             await page.setUserAgent(config.userAgent.pc);
 
-            //Login
+            // Login
             let nbTry = 0;
             const maxTries = 3;
             while (nbTry < maxTries) {
                 nbTry++;
                 try {
                     await loginAction(page);
-                    break; // Sort de la boucle si la connexion est réussie
+                    break; // Exit the loop if the connection is successful
                 } catch (e) {
-                    console.log(colors.red(`Une erreur est survenue lors de la connexion, nous allons réessayer : ${nbTry}/${maxTries}`));
+                    console.log(colors.red(`An error occurred during the connection, we will try again: ${nbTry}/${maxTries}`));
                     if (nbTry === maxTries) {
-                        console.log(colors.red("Impossible de se connecter, il est possible que l'erreur vienne de nous ou alors de votre compte"));
+                        console.log(colors.red("Unable to connect, it is possible that the error comes from us or from your account"));
                         process.exit(1);
                     }
-                    await new Promise((resolve) => setTimeout(resolve, 5000)); // Attendre avant la prochaine tentative
+                    await wait(5000)
                 }
             }
 
@@ -314,7 +321,7 @@ const showWelcomeMessage = (): void => {
 
             // Get points before
             const pointBefore = await getPoints(userInfo);
-            console.log(`Points avant l'utilisation du script : ${colors.cyan(String(pointBefore))}`);
+            console.log(`Points before using the script : ${colors.cyan(String(pointBefore))}`);
 
             // DailySetPromotions
             if (config.app.doDailySetPromotions) await dailySetPromotions(page, userInfo);
@@ -329,9 +336,9 @@ const showWelcomeMessage = (): void => {
             userInfo = await getUserInfo(page);
             const pointAfter = await getPoints(userInfo);
 
-            console.log(`Points après l'utilisation du script : ${colors.cyan(String(pointAfter))} | Gain : ${colors.green(String(pointAfter - pointBefore))}`);
+            console.log(`Points after using the script : ${colors.cyan(String(pointAfter))} | Profit : ${colors.green(String(pointAfter - pointBefore))}`);
 
             await browser.close();
-            console.log("Fin du script");
+            console.log("End of the script");
         });
 })();

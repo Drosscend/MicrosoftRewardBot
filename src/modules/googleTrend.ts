@@ -18,7 +18,7 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
     await page.goto(URL);
     await page.waitForSelector('.feed-item');
 
-    const bar = progressBar('Récupération des tendances Google', nbTrends);
+    const bar = progressBar("Google Trends Retrieval", nbTrends);
     const maxTrends = nbTrends;
     let trends: string[] = [];
 
@@ -26,7 +26,7 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
         bar.update(trends.length)
         await wait(2000);
 
-        // Récupérer les tendances actuelles
+        // Recovering current trends
         const currentTrends = await page.evaluate(() => {
             const trends: string[] = [];
             const trendItems = document.querySelectorAll('.feed-item');
@@ -45,7 +45,7 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
             return trends;
         });
 
-        // Ajouter les tendances actuelles à la liste totale des tendances
+        // Add current trends to the total list of trends
         trends = trends.concat(currentTrends);
 
         if (trends.length >= maxTrends) break;
@@ -54,11 +54,11 @@ export const getGoogleTrends = async (page: Page, nbTrends: number): Promise<str
             window.scrollBy(0, window.innerHeight);
         });
 
-        // Vérifier s'il reste des tendances à charger
+        // Check if there are any trends left to load
         const isNextPage = await page.$('.feed-load-more-button');
         if (!isNextPage) break;
 
-        // Charger plus de tendances
+        // Load more trends
         await page.click('.feed-load-more-button');
     }
     bar.update(maxTrends);

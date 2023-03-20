@@ -45,8 +45,9 @@ export const progressBar = (title: string, total: number): Bar => {
  * Make research on Bing
  * @param page - The puppeteer client
  * @param {string} query - The query to search
+ * @returns {Promise<void>} - A promise that resolves after the search
  */
-export const Bingsearch = async (page: Page, query: string | undefined) => {
+export const Bingsearch = async (page: Page, query: string | undefined): Promise<void> => {
     await page.goto(`https://www.bing.com/search?q=${query}`);
     await waitRandom(2500, 6000);
 };
@@ -73,8 +74,9 @@ export const getUserInfo = async (page: Page): Promise<apiResponse> => {
 /**
  * Get points
  * @param userInfo - The user info
+ * @returns {number} - The number of points
  */
-export const getPoints = async (userInfo: apiResponse) => {
+export const getPoints = async (userInfo: apiResponse): Promise<number> => {
     return userInfo.dashboard.userStatus.availablePoints
 }
 
