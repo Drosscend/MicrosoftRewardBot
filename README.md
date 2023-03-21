@@ -10,16 +10,20 @@ I am not responsible for the use of this bot. Use it at your own risk.
 ## Actual features
 - [x] Headless mode
 - [x] Search on bing (desktop and mobile)
-- [x] Open promotional links
-- [x] Polls
+- [ ] Open promotional links
+- [ ] Polls
 - [ ] Daily quiz
 
 ## Steps to install
-````bash
+```bash
 git clone https://github.com/Drosscend/MiscrosoftRewardBot.git
 cd MiscrosoftRewardBot
+```
+Edit the `modules/config.ts` file and change the `nbPtsPerSearch` value to the amount points you earn per search.
+
+```bash
 pnpm build # or npm build or yarn build
-````
+```
 
 ## Steps to use
 1. Copy the `.env.example` file and rename it to `.env`

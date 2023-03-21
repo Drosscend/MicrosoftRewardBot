@@ -15,7 +15,7 @@ export const config = {
     puppeteer: {
         headless: false,
         executablePath: getEdgePath(),
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-extensions'],
     },
     gooogleTrends: {
         baseURL: 'https://trends.google.com',
