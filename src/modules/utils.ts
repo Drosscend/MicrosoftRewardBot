@@ -49,6 +49,7 @@ export const progressBar = (title: string, total: number): Bar => {
  */
 export const Bingsearch = async (page: Page, query: string | undefined): Promise<void> => {
     await page.goto(`https://www.bing.com/search?q=${query}`);
+    await acceptCookies(page);
     await waitRandom(4000, 6000);
 };
 
@@ -102,7 +103,7 @@ export const promoLogin = async (page: Page): Promise<void> => {
  * @param page - The puppeteer page
  */
 export const acceptCookies = async (page: Page): Promise<void> => {
-    // Vérification de la présence d'une popup de cookies
+    // Check if cookies banner is present
     const cookiesBannerDiv = await page.$(`div[id="bnp_cookie_banner"]`);
     if (cookiesBannerDiv != null) {
         await page.click(`#bnp_btn_accept`);

@@ -133,7 +133,7 @@ const  dailySetPromotions = async (page: Page, userInfo: apiResponse): Promise<v
 
                         while (rqMCreditsBefore == rqMCreditsAfter) {
                             for (let i = 1; i < 8; i++) {
-                                await page.click(`div[id="rqM${i}"]`);
+                                await page.click(`div[id="rrqAnswerOption${i}"]`);
                                 await waitRandom(1000, 2000);
                                 rqMCreditsAfter = await page.$(`div[id="rqMCredits"]`);
                                 if (rqMCreditsBefore != rqMCreditsAfter) {
